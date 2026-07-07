@@ -253,9 +253,11 @@ SWAM/
     k8s/                  # Minikube manifests — dedicated "swam" namespace, headless Kafka Service, CPU-based HPA on backend
 ```
 
-**Created 2026-07-07:** `deploy/k8s/` (Minikube manifests, built + deployed, see §0/§7 Day 3).
+**Created 2026-07-07:** `deploy/k8s/` (Minikube manifests, built + deployed, see §0/§7 Day 3);
+`docs/diagrams/` + `docs/screenshots/` (Mermaid sources/renders + live UI captures);
+`report/` (technical report + presentation, Markdown/PDF/PPTX, see §7 Day 4).
 **Not yet created:** `loadtest/` (k6 — Day 3, a manual busybox loop already proved the HPA
-mechanism), `report/`, `docs/` (report material — Day 4).
+mechanism).
 
 ---
 
@@ -354,9 +356,24 @@ doesn't handle reliably — fixed by making the Kafka Service headless (`cluster
 which resolves the name straight to the pod IP instead.
 
 ### Day 4 — Report, Slides, Submission
-- [ ] Assemble technical report from all captures (see mapping in old Phase 9 below)
-- [ ] Write "future developments" section covering explicitly-cut items: transactional outbox, real K8s/KEDA deployment, dashboard screen, full dedup test set, formal statistical analysis
-- [ ] ~15 slides for the ~20 min presentation
+- [x] Mermaid diagrams — `docs/diagrams/*.mmd` (architecture, domain-model, dedup-sequence,
+  k8s-deployment, use-case), rendered to PNG via `@mermaid-js/mermaid-cli` (`npx mmdc`),
+  versioned as source per §9's working agreement
+- [x] Live UI screenshots — `docs/screenshots/*.png`, captured via Playwright (headless
+  Chromium) against the running Docker Compose stack with real seed data (register,
+  create incidents, close-with-comment, reply), not mocked/hand-drawn
+- [x] Technical report — `report/technical-report.md` (+ `technical-report.pdf` via
+  pandoc/xelatex), covering all 12 items from the professor's checklist in
+  `ProjectIdea.md` (objective, functional/non-functional requirements, use case diagram,
+  domain class diagram, preliminary + detailed design, architecture, DB design, frontend
+  mockup/preview, main components, future developments/conclusions)
+- [x] Presentation — `report/SWAM-Presentation.pptx` (+ `.pdf`), 17 slides, built with
+  python-pptx directly off the user-provided reference deck's own template/theme/layouts
+  (Copertina/Interna_solo testo/Controcopertina) so visual style matches; content mapped
+  1:1 to the report's sections
+- [x] "Future developments" section — written into both the report §11 and the closing
+  slide, covering Stage-2 semantic dedup, transactional outbox, real JWT auth, formal k6
+  load testing, and full CQRS read models
 - [ ] Record a demo video as live-demo fallback
 - [ ] Final proofread + **submit**
 

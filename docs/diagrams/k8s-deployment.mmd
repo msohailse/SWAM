@@ -1,0 +1,23 @@
+flowchart TB
+    subgraph Cluster["Minikube cluster -- namespace: swam"]
+        subgraph BackendDeploy["Deployment: backend (1-5 replicas)"]
+            B1[backend pod]
+            B2[backend pod]
+            B3[backend pod]
+        end
+        HPA["HorizontalPodAutoscaler\ntarget: 50% CPU\nmin 1 / max 5"]
+        HPA -.->|scales| BackendDeploy
+
+        FE["Deployment: frontend\n(NodePort Service)"]
+        AN["Deployment: analyzer-service\n(no Service, Kafka consumer only)"]
+        PG["Deployment: postgres\n(Service, ClusterIP)"]
+        KF["Deployment: kafka\n(headless Service, KRaft single broker)"]
+
+        FE -->|proxy /incidents /tags /users| BackendDeploy
+        BackendDeploy -->|JDBC| PG
+        BackendDeploy -->|publish| KF
+        KF -->|consume| AN
+        AN -->|JDBC| PG
+    end
+
+    User[Browser] -->|kubectl port-forward| FE

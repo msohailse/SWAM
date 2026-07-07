@@ -1,0 +1,45 @@
+classDiagram
+    class User {
+        int id
+        String firstName
+        String lastName
+        String email
+        String password
+        UserType userType
+    }
+    class UserType {
+        <<enumeration>>
+        REPORTER
+        ADMIN
+    }
+    class Tag {
+        int id
+        String tagTitle
+        String tagDescription
+    }
+    class Incident {
+        int id
+        String title
+        String description
+        Severity severity
+        Date reportedAt
+        boolean isClosed
+    }
+    class Severity {
+        <<enumeration>>
+        LOW
+        MEDIUM
+        HIGH
+    }
+    class Comment {
+        int id
+        String text
+        Date createdAt
+    }
+
+    User "1" --> "*" Incident : reportedBy
+    Tag "1" --> "*" Incident : tag (many-to-one)
+    Incident "1" --> "*" Comment : comments
+    User "1" --> "*" Comment : author
+    User ..> UserType
+    Incident ..> Severity

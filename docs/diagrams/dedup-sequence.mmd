@@ -1,0 +1,21 @@
+sequenceDiagram
+    actor Reporter
+    participant API as api-service (IncidentResource/Service)
+    participant DB as PostgreSQL
+    participant K as Kafka (incident-created)
+    participant AN as analyzer-service
+
+    Reporter->>API: POST /incidents
+    API->>DB: save Incident (synchronous)
+    API-->>Reporter: 200 OK + created Incident
+    API->>K: publish IncidentCreatedEvent (fire-and-forget)
+
+    Note over API,Reporter: Response already returned -- publish does not block creation
+
+    K->>AN: consume incident-created
+    AN->>DB: similarity(title||description) > 0.4 against other open incidents
+    alt likely duplicate found
+        AN->>DB: persist Comment("Possible duplicate of incident #X")
+    else no match
+        AN->>AN: log "no likely duplicate found"
+    end

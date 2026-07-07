@@ -1,0 +1,18 @@
+flowchart LR
+    Reporter((Reporter))
+    Admin((Admin))
+    System((Analyzer\nsystem actor))
+
+    Reporter --> UC1[Register / Login]
+    Reporter --> UC2[Report an Incident]
+    Reporter --> UC3[View own Incidents]
+    Reporter --> UC4[Reply to Comment thread]
+
+    Admin --> UC1
+    Admin --> UC5[View all Incidents]
+    Admin --> UC6[Filter Incidents\nby tag/severity/status]
+    Admin --> UC7[Close Incident with Comment]
+    Admin --> UC4
+    Admin --> UC8[Manage Tags]
+
+    System --> UC9[Detect likely duplicate\n& flag with system Comment]

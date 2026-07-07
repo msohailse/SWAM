@@ -1,0 +1,24 @@
+flowchart TB
+    User[Angular SPA]
+
+    subgraph API["api-service (Quarkus)"]
+        REST["REST: /incidents /tags /users"]
+        SVC["IncidentService / TagService / UserService"]
+        PORT["Ports: *RepositoryPort, IncidentEventPublisherPort"]
+        REST --> SVC --> PORT
+    end
+
+    subgraph ANALYZER["analyzer-service (Quarkus, separate project)"]
+        CONSUMER["IncidentCreatedConsumer"]
+        DEDUP["DuplicateDetector (pg_trgm, threshold 0.4)"]
+        CONSUMER --> DEDUP
+    end
+
+    DB[(PostgreSQL)]
+    KAFKA[["Kafka topic: incident-created"]]
+
+    User -->|HTTP| REST
+    PORT -->|JPA| DB
+    PORT -->|publish| KAFKA
+    KAFKA -->|consume| CONSUMER
+    DEDUP -->|write duplicate-flag Comment| DB
