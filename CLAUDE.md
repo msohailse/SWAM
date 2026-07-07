@@ -60,9 +60,19 @@
   clean `400`.
 - **Top-level `README.md` added** — setup/run steps (Docker Compose quick-start, running
   each service individually for dev, API quick reference, test commands).
+- **Minikube/K8s + HPA — built and verified 2026-07-07.** `deploy/k8s/` deploys the full
+  stack (postgres, kafka, backend, analyzer-service, frontend) to a real local Kubernetes
+  cluster in its own `swam` namespace, with a plain CPU-based `HorizontalPodAutoscaler`
+  (D6) on the backend. Verified live end-to-end (register → create incidents → dedup
+  flagged, same as Docker Compose) and verified the HPA itself: a synthetic load
+  generator drove backend CPU from 6% to 127% of the 50% target, and `kubectl get hpa -w`
+  showed replicas climb 1 → 3 → 5 (max), then scale back down once load stopped. Full
+  details, including a naming-collision incident on a shared cluster and a Kafka headless-
+  Service fix, in §7 Day 3.
 - **Not built yet**: Stage-2 semantic dedup (pgvector/embeddings — still deferred per §3),
   the async `202`/tracking flow (deliberately not built — see above), the transactional
-  outbox, Minikube/K8s. These remain the next slices.
+  outbox, a formal k6 load-test script (a simpler busybox loop already proved the HPA
+  mechanism — see Day 3). These remain the next slices.
 
 **Decisions revised from earlier in the file (details in §4/§8):**
 - Hexagonal variant is **Pragmatic**, not Strict, for this codebase — domain entities
@@ -240,10 +250,12 @@ SWAM/
   deploy/
     docker-compose.yml    # kafka + postgres + backend + analyzer-service + frontend, host port 5433 for postgres (5432 taken by another project)
     .env.example          # copy to .env (gitignored) for real credentials
+    k8s/                  # Minikube manifests — dedicated "swam" namespace, headless Kafka Service, CPU-based HPA on backend
 ```
 
-**Not yet created:** `deploy/k8s/` (Minikube manifests — Day 3), `loadtest/` (k6 — Day 3),
-`report/`, `docs/` (report material — Day 4).
+**Created 2026-07-07:** `deploy/k8s/` (Minikube manifests, built + deployed, see §0/§7 Day 3).
+**Not yet created:** `loadtest/` (k6 — Day 3, a manual busybox loop already proved the HPA
+mechanism), `report/`, `docs/` (report material — Day 4).
 
 ---
 
@@ -316,14 +328,30 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - 📸 Capture: EDA component diagram (backend → Kafka → analyzer-service), dedup decision flow (trgm-only for now)
 
 ### Day 3 — Frontend + Real Minikube Deployment + Scaling Demo
-- [ ] Angular scaffold (standalone components, Angular Material)
-- [ ] Screen 1: submit report form; Screen 2: track report (poll every 2s until terminal status)
-- [ ] Wire CORS on API service
-- [ ] Containerfiles for both services (Quarkus generates these); build images, load into Minikube (`minikube image load` or `eval $(minikube docker-env)`)
-- [ ] K8s manifests: Deployments (api, analyzer), Services, ConfigMaps/Secrets, Postgres+Kafka (as Deployments/StatefulSets or kept in Compose alongside the cluster — decide based on time), `HorizontalPodAutoscaler` on analyzer keyed to CPU
-- [ ] Deploy for real to Minikube; k6 spike load; `kubectl get hpa -w` while load flows — screenshot replica count climbing; measure p95 latency + time-to-Case-Number
+- [x] Angular scaffold — done earlier than planned, see Day 1 (needed to validate the REST API as it was built)
+- [x] Wire CORS on API service — done earlier (Day 1), `quarkus.http.cors=true`
+- [x] Containerfiles for all three services (backend, analyzer-service, frontend) — done earlier (Day 1/2); built straight into Minikube's own Docker daemon via `eval $(minikube docker-env)` + `docker build`, no registry push needed (`imagePullPolicy: Never`)
+- [x] K8s manifests — `deploy/k8s/`: `00-namespace.yaml` (dedicated `swam` namespace — see incident note below), `00-secret.yaml` (DB credentials), `01-postgres.yaml`, `02-kafka.yaml` (Deployment + **headless** Service — see note below), `03-backend.yaml` (Deployment + Service + CPU requests/limits for HPA), `04-analyzer.yaml` (Deployment, no Service — no REST), `05-frontend.yaml` (Deployment + NodePort Service), `06-backend-hpa.yaml` (`autoscaling/v2` HPA, CPU target 50%, min 1/max 5)
+- [x] Deployed for real to Minikube (not "designed, not deployed") — verified live: registered a user, created two near-duplicate incidents through the K8s-hosted stack, confirmed the full EDA pipeline (backend → Kafka → analyzer-service → Postgres) flags the second one, exactly as it does under Docker Compose
+- [x] HPA scaling demo — ran a 6-replica `busybox` load-generator Deployment hammering `GET /incidents`; watched `kubectl get hpa -n swam -w`: backend climbed from 1 → 3 → 5 replicas (max) as CPU rose from 6% to 127%/50% target, then scaled back down once the load generator was removed (HPA's default 5-minute scale-down stabilization window)
+- [ ] k6 spike load + formal p95 latency measurement — the busybox loop above was enough to prove the scaling mechanism works and produced a real replica-count chart; a proper k6 script with descriptive stats is still open if time allows (Lightweight GQM writeup below)
 - [ ] Lightweight GQM writeup: goal statement + descriptive stats (means/p95) + one comparison chart (1 replica vs. HPA-scaled); skip full hypothesis testing unless there's spare time Day 4 morning
-- 📸 Capture: screenshots of both screens, K8s deployment diagram, HPA replica-count-climbing screenshot, scaling comparison chart
+- 📸 Capture: screenshots of the app, K8s deployment diagram, HPA replica-count-climbing screenshot (1→5), scaling-down screenshot
+
+**Incident during this slice, resolved — worth remembering:** the first `kubectl apply` of
+these manifests targeted the default (unnamespaced) namespace, on a *shared* Minikube
+cluster that already had an unrelated demo project running (Google's "Online Boutique"
+sample — `adservice`, `cartservice`, etc., up 21 days). That project also had a `frontend`
+Deployment + Service, and the plain-name collision caused `kubectl apply` to silently
+overwrite the boutique's `frontend` Deployment image and the Service's `targetPort`.
+Caught it immediately, fixed it (`kubectl rollout undo` for the Deployment, a manual
+`targetPort` patch for the Service, both confirmed working again), then moved every SWAM
+resource into its own `swam` namespace (`00-namespace.yaml`) so this class of collision
+can't recur. Separately, the single-broker Kafka pod crash-looped under a plain
+`ClusterIP` Service because a KRaft node's self-connection to its own controller listener
+(`kafka:9093`) hairpins back through the Service NAT, which this cluster's networking
+doesn't handle reliably — fixed by making the Kafka Service headless (`clusterIP: None`),
+which resolves the name straight to the pod IP instead.
 
 ### Day 4 — Report, Slides, Submission
 - [ ] Assemble technical report from all captures (see mapping in old Phase 9 below)

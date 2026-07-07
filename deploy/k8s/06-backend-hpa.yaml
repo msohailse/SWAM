@@ -1,0 +1,23 @@
+# Plain CPU-based HPA (D6 in CLAUDE.md) — not KEDA. Scales the backend Deployment
+# between 1 and 5 replicas, targeting 50% average CPU utilization against the
+# `resources.requests.cpu: 200m` set in 03-backend.yaml. autoscaling/v2 is what
+# `kubectl get hpa` on a modern cluster expects.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: swam
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50

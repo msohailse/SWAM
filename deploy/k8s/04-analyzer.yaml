@@ -1,0 +1,39 @@
+# analyzer-service — no REST endpoints, so no Service needed, just a Deployment that
+# consumes Kafka and writes duplicate-flag comments straight to Postgres.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analyzer-service
+  namespace: swam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analyzer-service
+  template:
+    metadata:
+      labels:
+        app: analyzer-service
+    spec:
+      containers:
+        - name: analyzer-service
+          image: swam-analyzer:local
+          imagePullPolicy: Never
+          env:
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: swam-db-credentials, key: DB_USER } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: swam-db-credentials, key: DB_PASSWORD } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: swam-db-credentials, key: DB_NAME } }
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/$(DB_NAME)
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

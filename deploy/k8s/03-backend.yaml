@@ -1,0 +1,54 @@
+# Backend (api-service). CPU requests/limits are set specifically because the HPA in
+# 06-backend-hpa.yaml scales off CPU utilization percentage, which is measured against
+# `resources.requests.cpu` — no requests set means no %, means no HPA scaling.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: swam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: swam-backend:local
+          imagePullPolicy: Never # built straight into minikube's docker daemon, no registry
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_USER
+              valueFrom: { secretKeyRef: { name: swam-db-credentials, key: DB_USER } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: swam-db-credentials, key: DB_PASSWORD } }
+            - name: DB_NAME
+              valueFrom: { secretKeyRef: { name: swam-db-credentials, key: DB_NAME } }
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/$(DB_NAME)
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: swam
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080

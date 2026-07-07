@@ -1,0 +1,55 @@
+# Plain Deployment, not a StatefulSet — a prototype only needs one Postgres pod, and a
+# StatefulSet would add ceremony (headless Service, volumeClaimTemplates) for no benefit
+# at this scale. Data lives in emptyDir, so it's gone if the pod is rescheduled — fine
+# for a demo, documented as a known limitation (see README).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: swam
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: swam-db-credentials
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: { name: swam-db-credentials, key: DB_USER }
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: { name: swam-db-credentials, key: DB_PASSWORD }
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef: { name: swam-db-credentials, key: DB_NAME }
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: swam
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
