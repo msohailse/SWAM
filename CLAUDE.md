@@ -69,10 +69,27 @@
   showed replicas climb 1 → 3 → 5 (max), then scale back down once load stopped. Full
   details, including a naming-collision incident on a shared cluster and a Kafka headless-
   Service fix, in §7 Day 3.
-- **Not built yet**: Stage-2 semantic dedup (pgvector/embeddings — still deferred per §3),
-  the async `202`/tracking flow (deliberately not built — see above), the transactional
-  outbox, a formal k6 load-test script (a simpler busybox loop already proved the HPA
-  mechanism — see Day 3). These remain the next slices.
+- **Lightweight load comparison — built and verified 2026-07-07.** 1500 requests at
+  concurrency 100 against `GET /incidents`, backend at 1 replica vs. 5 replicas: p95
+  latency 85.4ms → 17.8ms (~4.8x), mean 35.6ms → 8.1ms (~4.4x). Chart at
+  `docs/diagrams/scaling-latency-comparison.png`; full writeup in
+  `report/technical-report.md` §10.3 and its own presentation slide.
+- **Report + presentation — built 2026-07-07.** `report/technical-report.md` (+ PDF)
+  covers all 12 items from the professor's checklist in `ProjectIdea.md`; 18-slide
+  `report/SWAM-Presentation.pptx` (+ PDF) built on the user-provided reference deck's own
+  template/theme. Mermaid diagram sources + renders in `docs/diagrams/`, live UI
+  screenshots (captured via headless Playwright, not mockups) in `docs/screenshots/`.
+- **Everything not required by `ProjectIdea.md`/the professor's checklist has been
+  deliberately dropped from remaining scope** (not silently forgotten) — see §7 Day 1-3
+  for the specific items and why each was dropped: an ACID rollback test, an automated
+  dedup test, dedup threshold tuning against a real pair set, and a formal k6 script all
+  fell to this rule, since testing is confirmed not a professor requirement (§8) and
+  none of these were named in the proposal.
+- **Genuinely still open, deliberately deferred, not dropped**: Stage-2 semantic dedup
+  (pgvector/embeddings — parked on its own branch, see §3/§11 of the report), the
+  transactional outbox pattern, real JWT auth, and the async `202`/tracking flow from
+  the original proposal (replaced by a documented synchronous pivot, see above). These
+  are true future-developments items, listed as such in the report, not TODOs.
 
 **Decisions revised from earlier in the file (details in §4/§8):**
 - Hexagonal variant is **Pragmatic**, not Strict, for this codebase — domain entities
@@ -310,9 +327,18 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - [x] Domain model — `Incident`, `Tag`, `User`, `UserType`, `Severity`, `Comment` — kept `@Entity` (Pragmatic Hexagonal, D1b revised)
 - [x] Ports: `IncidentRepositoryPort`, `TagRepositoryPort`, `UserRepositoryPort`, `CommentRepositoryPort`
 - [x] JPA adapters (`adapters/out/persistence/`), Incident↔Tag `@ManyToOne` (kept from the existing codebase — deviates from `ProjectIdea.md`'s many-to-many, document this explicitly in the report)
-- [ ] **ACID showcase test** — not re-verified after the Quarkus migration; the original Swing-era rollback test was removed with the Swing code. Needs a fresh one (incident+comment or incident+tag forced-failure rollback) — flagged for Day 2.
+- [x] ~~ACID showcase test~~ — **dropped 2026-07-07**: testing is not a professor
+  requirement (zero mentions in `ProjectIdea.md`'s checklist, confirmed §8). The ACID
+  property itself *is* named in the proposal (single-transaction incident+tag creation)
+  and is satisfied architecturally by `IncidentService`'s `@Transactional` methods —
+  described in the report (§6.3/§7), no automated test needed to prove it for this exam.
 - [x] Full CRUD REST instead of the async flow: `POST/GET/PUT/DELETE /incidents`, `/tags`, `POST /users/register|login`, `PATCH /incidents/{id}/close` (admin-only, requires a `Comment`), `GET /incidents/{id}/comments`, `POST /incidents/{id}/comments` (reply — either role, added 2026-07-07 so the reporter can respond to the admin's closing comment, not just read it)
-- [ ] `POST /reports` → `202` + Kafka publish — **not built yet**, this is Day 2's first task
+- [x] ~~`POST /reports` → `202` + Kafka publish~~ — **intentionally not built, not a gap**:
+  this was the original proposal's ingestion shape, but the project deliberately pivoted
+  to a synchronous `POST /incidents` (see §0) to reuse the existing, already-tested CRUD
+  codebase rather than rebuild it around a tracking-ID/polling model. Documented as an
+  explicit deviation in the report (§5), not a missed requirement — the professor's own
+  confirmation that "a prototype with limited functionality suffices" covers this.
 - [x] Angular frontend (login/register/incidents/tags, `adminGuard`, per-incident expandable comment thread + reply box) — originally planned for Day 3, built early since it was needed to validate the REST API
 - [x] Verified end-to-end: `mvn test` (107 tests green), `mvn quarkus:dev` + manual curl CRUD, `ng serve` via proxy, and the full `docker compose up --build` stack (including `--scale backend=3`)
 - 📸 Capture: tech stack table, domain class diagram (now includes `Comment`), ER diagram, REST API sequence diagram
@@ -322,11 +348,19 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
   idempotent (no dedup-of-events-themselves logic) since re-processing the same
   incident-created event twice just adds one more duplicate-flag comment, harmless for a prototype
 - [x] Stage-1: `pg_trgm` similarity query against other open incidents, threshold 0.4 (native query, `DuplicateDetector.checkForDuplicate`) — verified live: similar pair flagged, unrelated incident not
-- [ ] Stage-2: `pgvector` + embeddings — still deferred (§3), not started
+- [x] ~~Stage-2: `pgvector` + embeddings~~ — **built on a separate branch, deliberately not
+  merged, and not required**: `ProjectIdea.md` only asks the system to "identify if an
+  incident is a duplicate," which Stage-1 (pg_trgm) already satisfies; embeddings were
+  the project's own stretch-goal RAG-lite idea (§3), not a professor requirement. Parked
+  on `stage2-semantic-dedup` for future work, per §11 of the report.
 - [x] "Combine stages" simplified to Stage-1 only for now: trgm hit → system comment flagging the duplicate; no hit → nothing (there's no separate `CaseNumber`/case concept anymore — see §0, we pivoted to direct Incident CRUD, so "duplicate" is expressed as a comment on the incident, not a case-linking operation)
-- [ ] Threshold tuning against a hand-picked pair set — not done, 0.4 is a first guess verified against one obvious-duplicate pair and one unrelated pair, not tuned against a real set
+- [x] ~~Threshold tuning against a hand-picked pair set~~ — **dropped**: not a professor
+  requirement; the current 0.4 threshold is documented as an unverified first guess in
+  both the code comments and the report (§6.1), which is sufficient disclosure for a
+  prototype exam project.
 - [x] CQRS-lite filtered read endpoint — `GET /incidents?tag=&severity=&status=` (bare minimum, no separate read-model/projection table); `case_summary`/`/stats` style read models still not built, current reads otherwise are direct `GET /incidents`, `GET /incidents/user/{id}` against the write-side tables
-- [ ] Automated test for the dedup flow — verified manually via curl (see §0), no `@QuarkusTest` covering the Kafka round-trip yet (would need Dev Services Kafka+Postgres wired together, skipped for time per the "testing not required" call in §8)
+- [x] ~~Automated test for the dedup flow~~ — **dropped, testing not required** (see §8);
+  verified manually via curl instead, which is documented in the report.
 - 📸 Capture: EDA component diagram (backend → Kafka → analyzer-service), dedup decision flow (trgm-only for now)
 
 ### Day 3 — Frontend + Real Minikube Deployment + Scaling Demo
@@ -336,8 +370,14 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - [x] K8s manifests — `deploy/k8s/`: `00-namespace.yaml` (dedicated `swam` namespace — see incident note below), `00-secret.yaml` (DB credentials), `01-postgres.yaml`, `02-kafka.yaml` (Deployment + **headless** Service — see note below), `03-backend.yaml` (Deployment + Service + CPU requests/limits for HPA), `04-analyzer.yaml` (Deployment, no Service — no REST), `05-frontend.yaml` (Deployment + NodePort Service), `06-backend-hpa.yaml` (`autoscaling/v2` HPA, CPU target 50%, min 1/max 5)
 - [x] Deployed for real to Minikube (not "designed, not deployed") — verified live: registered a user, created two near-duplicate incidents through the K8s-hosted stack, confirmed the full EDA pipeline (backend → Kafka → analyzer-service → Postgres) flags the second one, exactly as it does under Docker Compose
 - [x] HPA scaling demo — ran a 6-replica `busybox` load-generator Deployment hammering `GET /incidents`; watched `kubectl get hpa -n swam -w`: backend climbed from 1 → 3 → 5 replicas (max) as CPU rose from 6% to 127%/50% target, then scaled back down once the load generator was removed (HPA's default 5-minute scale-down stabilization window)
-- [ ] k6 spike load + formal p95 latency measurement — the busybox loop above was enough to prove the scaling mechanism works and produced a real replica-count chart; a proper k6 script with descriptive stats is still open if time allows (Lightweight GQM writeup below)
-- [ ] Lightweight GQM writeup: goal statement + descriptive stats (means/p95) + one comparison chart (1 replica vs. HPA-scaled); skip full hypothesis testing unless there's spare time Day 4 morning
+- [x] Lightweight load comparison (no k6, no professor requirement for it — dropped the
+  "formal k6 script" ambition, done with plain parallel `curl` instead) — 1500 requests
+  at concurrency 100 against `GET /incidents`, backend at 1 replica vs. 5 replicas:
+  p95 latency 85.4ms → 17.8ms (~4.8x), mean 35.6ms → 8.1ms (~4.4x). Chart at
+  `docs/diagrams/scaling-latency-comparison.png`, full writeup in the report §10.3 and
+  its own presentation slide. Explicitly framed as descriptive-stats-only, single trial,
+  no formal hypothesis testing — consistent with the "lightweight" scope agreed in §7's
+  cut list.
 - 📸 Capture: screenshots of the app, K8s deployment diagram, HPA replica-count-climbing screenshot (1→5), scaling-down screenshot
 
 **Incident during this slice, resolved — worth remembering:** the first `kubectl apply` of
@@ -374,22 +414,11 @@ which resolves the name straight to the pod IP instead.
 - [x] "Future developments" section — written into both the report §11 and the closing
   slide, covering Stage-2 semantic dedup, transactional outbox, real JWT auth, formal k6
   load testing, and full CQRS read models
-- [ ] Record a demo video as live-demo fallback
-- [ ] Final proofread + **submit**
-
-### Phase Details
-
-Rules: phases are sequential; each phase ends **demoable** and ends with a
-"📸 capture for report" task. Check items off as they land.
-
-### Phase 0 — Foundations
-- [ ] `git init`, `.gitignore`, commit ProjectIdea.md + CLAUDE.md
-- [ ] Verify decision D1 (Quarkus vs WildFly) against course material/professor if unsure
-- [ ] Scaffold `backend/api-service` and `backend/analyzer-service` (Quarkus CLI: `quarkus create app`)
-- [ ] `deploy/docker-compose.yml`: `pgvector/pgvector:pg16` image + Kafka (KRaft, single broker, e.g. `apache/kafka` image)
-- [ ] Smoke test: both services boot, connect to Postgres and Kafka
-- 📸 Capture: tech stack table + deployment context sketch → feeds report "application architecture"
-- 📚 Quarkus getting started: https://quarkus.io/guides/getting-started · Kafka KRaft quickstart: https://kafka.apache.org/quickstart
+- [~] Record a demo video as live-demo fallback — **not a professor requirement**
+  (`ProjectIdea.md` asks only for a report + a live ~20 min presentation, zero mentions
+  of a video); left as an optional personal safety net, not tracked as required work.
+- [ ] Final proofread + **submit** — inherently the user's own final pass before
+  submission, not something to automate away.
 
 ### Reference — Learning Links (kept from the original 7-day plan, still valid)
 - 📚 Quarkus Kafka guide: https://quarkus.io/guides/kafka · Testcontainers: https://testcontainers.com/guides/getting-started-with-testcontainers-for-java/
@@ -401,22 +430,6 @@ Rules: phases are sequential; each phase ends **demoable** and ends with a
 - 📚 kind quickstart: https://kind.sigs.k8s.io/docs/user/quick-start/ · KEDA Kafka scaler: https://keda.sh/docs/latest/scalers/apache-kafka/ · Quarkus→K8s guide: https://quarkus.io/guides/deploying-to-kubernetes
 - 📚 k6 getting started: https://grafana.com/docs/k6/latest/ · course's own Empirical SE lectures (`course_content/.../Folder_Empirical_Software_Eng...`) for the GQM/stats/threats-to-validity template
 - 📚 Transactional outbox pattern (for the "future developments" writeup): https://microservices.io/patterns/data/transactional-outbox.html
-- 📚 PlantUML (diagrams as code, version-controlled): https://plantuml.com/
-
-### Day 4 detail — Technical Report & Presentation
-Map of report sections → where the material already exists:
-- [ ] Objective & purpose → from ProjectIdea.md §intro
-- [ ] Requirements analysis (functional + non-functional) → write formally; NFRs: throughput, elasticity, eventual consistency bounds, dedup accuracy
-- [ ] Use case analysis + UML Use Case Diagram → actors: Reporter, (optional Admin); draw in PlantUML
-- [ ] Domain modeling + UML Class Diagram → Phase 1 capture
-- [ ] Preliminary/conceptual design → Phase 5 capture (CQRS) + §2 diagram
-- [ ] Detailed design → Phase 2, 7 captures (sequence diagrams, outbox, KEDA)
-- [ ] Application architecture → Phase 0, 3, 7 captures
-- [ ] Database design (ER diagram) → Phase 1 capture
-- [ ] Frontend mockup + UI preview → Phase 6 captures
-- [ ] Main components description → Phase 4 capture (dedup deep-dive is the star)
-- [ ] Future developments & conclusions → §5 "stretch" + "out of scope" lists, plus true-RAG upgrade path
-- [ ] Slides: ~15 slides for 20 min; demo video fallback recorded in advance (live demos fail during exams)
 - 📚 PlantUML (diagrams as code, version-controlled): https://plantuml.com/
 
 ---
