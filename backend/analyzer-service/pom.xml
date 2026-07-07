@@ -56,6 +56,13 @@
 			<artifactId>quarkus-messaging-kafka</artifactId>
 		</dependency>
 
+		<!-- Stage-2 dedup: in-process embedding model (pure Java, no API keys, no cost) -->
+		<dependency>
+			<groupId>dev.langchain4j</groupId>
+			<artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
+			<version>1.0.0-beta5</version>
+		</dependency>
+
 		<!-- Tests -->
 		<dependency>
 			<groupId>io.quarkus</groupId>

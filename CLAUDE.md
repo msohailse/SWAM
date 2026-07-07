@@ -47,9 +47,33 @@
   incident does not (no false positive). The pg_trgm extension is created by the analyzer
   itself at startup (`CREATE EXTENSION IF NOT EXISTS pg_trgm`), since `backend/`'s own
   schema generation only knows about its `@Entity` classes.
-- **Not built yet**: Stage-2 semantic dedup (pgvector/embeddings — still deferred per §3),
-  the async `202`/tracking flow (deliberately not built — see above), the transactional
-  outbox, Minikube/K8s. These remain the next slices.
+- **Stage-2 semantic dedup — implemented and verified, but parked on branch
+  `stage2-semantic-dedup`, NOT on `main`.** `main` stays on Stage-1 (pg_trgm) only; this
+  branch adds `langchain4j-embeddings-all-minilm-l6-v2` (in-process ONNX, no API keys) to
+  `analyzer-service`, a CDI producer (`EmbeddingModelProducer`) since the raw langchain4j
+  jar isn't a Quarkus extension and doesn't self-register as a bean, an
+  `incident_embeddings(incident_id, embedding vector(384))` table created at startup
+  alongside the pgvector extension, and a combine-stages rule in
+  `DuplicateDetector.checkForDuplicate()`: trgm hit → duplicate (Stage 1); else cosine
+  search (`<=>` operator, distance threshold 0.45 — calibrated against exactly one
+  manually-verified pair at distance 0.393, **not a tuned value**) → duplicate (Stage 2);
+  else store the new embedding regardless, for future comparisons. Requires
+  `pgvector/pgvector:pg16` instead of plain `postgres:16` in `docker-compose.yml` (branch
+  only). **Verified live** with a pair sharing zero vocabulary ("Water pooling near front
+  doors" vs. "Reception area soaked after heavy weather") — correctly flagged via Stage 2
+  alone. Kept off `main` because the threshold needs real tuning before it's trustworthy,
+  and because the user wants to reconsider the approach before committing to it — revisit
+  before merging.
+- **Not built yet** (on `main`): the async `202`/tracking flow (deliberately not built —
+  see above), the transactional outbox, Minikube/K8s. These remain the next slices.
+- **DTO/Mapper layer — considered and declined for now.** A `Publishing_House_Management_Report.pdf`
+  reference report (another team's, shared 2026-07-07 as a report-structure example) uses
+  a DTO/Mapper layer; checked `ProjectIdea.md` — zero mentions, not a professor
+  requirement. Declined to add it given the "keep it simple"/Pragmatic Hexagonal calls
+  already made — REST resources return JPA entities directly (with `@JsonIgnore` on the
+  one genuinely sensitive field, `User.password`). Note as a "future developments" item
+  in the report: DTOs would decouple API shape from persistence shape, cheap to add later
+  if there's spare time.
 
 **Decisions revised from earlier in the file (details in §4/§8):**
 - Hexagonal variant is **Pragmatic**, not Strict, for this codebase — domain entities
@@ -164,7 +188,7 @@ LLM "is this the same incident?").
 | D2 | **Two services** (API + Analyzer), one monorepo, no shared Java code between them (only the DB schema + Kafka topic connect them) | Enough to demonstrate EDA + independent scaling; more services = scope creep. No shared library because that would couple two "independent" services at the code level — each owns its own minimal model of the shared tables | ✅ implemented 2026-07-07: `backend/` (api-service) + `backend/analyzer-service/`, verified live via Docker |
 | D3 | **Lightweight CQRS, no event sourcing** | Separate read models (JPA projections / views) updated from events; event sourcing would double the project size | proposed, not started — current reads are direct queries against the write-side tables |
 | D4 | **Transactional outbox pattern** for publishing to Kafka | Incident+Tags+outbox row commit in ONE transaction → this *is* the "strict ACID" requirement from the proposal, and a strong report section. A simple poller relays outbox → Kafka | **cut for time** (see §7 Day-1 cuts) — publish happens directly in `IncidentService.create()` after `save()`, not via an outbox row. Document the dual-write risk this reintroduces as "future developments." |
-| D5 | **Dedup = pg_trgm** implemented; **+ pgvector embeddings** deferred (§3) | Intelligent, self-contained, testable, free | ✅ Stage-1 (pg_trgm) implemented + verified 2026-07-07 in `analyzer-service`'s `DuplicateDetector`; Stage-2 (embeddings) still not started |
+| D5 | **Dedup = pg_trgm** implemented on `main`; **+ pgvector embeddings** implemented on branch `stage2-semantic-dedup` (§3) | Intelligent, self-contained, testable, free | ✅ Stage-1 (pg_trgm) on `main`, verified 2026-07-07. ✅ Stage-2 (embeddings) verified working on the branch (zero-vocabulary-overlap pair correctly flagged), but **not merged** — threshold (0.45) isn't tuned, and the approach itself is still up for reconsideration per user request |
 | D6 | **Plain Kubernetes HPA (CPU-based)**, not KEDA | User already knows K8s and wants a real deployment within the 4-day window; plain HPA is exactly what the course's own Kubernetes lecture teaches (control loop, desired-replica formula, stabilization window) — safer to actually deploy correctly than KEDA-on-Kafka-lag, which isn't covered in any course material we found | ✅ decided 2026-07-06, actually deployed (not manifests-only) |
 | D7 | **Minikube** for local K8s | User's preference — already knows Kubernetes; same role `kind` would have played (single-node cluster on the laptop), swapped for the tool they're fluent in. Real deployment, not "designed, not deployed" | ✅ decided 2026-07-06 |
 | D8 | **k6** for synthetic load + measurements | Scriptable, produces CSV/JSON for report charts | proposed |

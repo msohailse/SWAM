@@ -19,7 +19,9 @@ services:
       - "9092"
 
   postgres:
-    image: postgres:16
+    # pgvector-enabled image (branch stage2-semantic-dedup only) — the analyzer's
+    # Stage-2 dedup needs `CREATE EXTENSION vector`, which plain postgres:16 doesn't ship.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
