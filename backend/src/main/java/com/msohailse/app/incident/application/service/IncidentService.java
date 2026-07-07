@@ -1,6 +1,7 @@
 package com.msohailse.app.incident.application.service;
 
 import com.msohailse.app.incident.application.port.out.CommentRepositoryPort;
+import com.msohailse.app.incident.application.port.out.IncidentEventPublisherPort;
 import com.msohailse.app.incident.application.port.out.IncidentRepositoryPort;
 import com.msohailse.app.incident.application.port.out.TagRepositoryPort;
 import com.msohailse.app.incident.application.port.out.UserRepositoryPort;
@@ -30,6 +31,9 @@ public class IncidentService {
 	@Inject
 	CommentRepositoryPort commentRepository;
 
+	@Inject
+	IncidentEventPublisherPort eventPublisher;
+
 	@Transactional
 	public Incident create(String title, String description, Severity severity, String tagTitle, int reportedByUserId) {
 		User reportedBy = userRepository.findById(reportedByUserId);
@@ -49,6 +53,12 @@ public class IncidentService {
 		incident.setReportedBy(reportedBy);
 		incident.setTag(tag);
 		incidentRepository.save(incident);
+
+		// Fire-and-forget: the Analyzer service picks this up asynchronously to check for
+		// duplicates. Creation itself stays synchronous/immediate — this doesn't change the
+		// already-working create flow, it just adds a side effect after the save.
+		eventPublisher.publishIncidentCreated(incident.getId(), title, description, tagTitle);
+
 		return incident;
 	}
 

@@ -1,4 +1,23 @@
 services:
+  kafka:
+    image: apache/kafka:latest
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
+    # No host port exposed on purpose — only backend/analyzer-service (inside the
+    # compose network) talk to it, same reasoning as backend's own port setup below.
+    expose:
+      - "9092"
+
   postgres:
     image: postgres:16
     environment:
@@ -21,6 +40,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     # No fixed host port mapping on purpose: a fixed "8080:8080" would make every
     # replica fight over the same host port, breaking `docker compose up --scale
     # backend=N`. The frontend's nginx reaches it over the internal docker network
@@ -31,6 +51,20 @@ services:
       - "8080"
     depends_on:
       - postgres
+      - kafka
+
+  analyzer-service:
+    build:
+      context: ../backend/analyzer-service
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - postgres
+      - kafka
 
   frontend:
     build:

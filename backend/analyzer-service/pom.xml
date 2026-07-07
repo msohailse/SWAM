@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.msohailse.app</groupId>
-	<artifactId>incident</artifactId>
+	<artifactId>analyzer</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
@@ -13,9 +13,6 @@
 		<quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
 		<quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
 		<quarkus.platform.version>3.37.1</quarkus.platform.version>
-		<mockito.version>4.11.0</mockito.version>
-		<assertj.version>3.26.3</assertj.version>
-		<testcontainers.version>1.21.4</testcontainers.version>
 	</properties>
 
 	<dependencyManagement>
@@ -31,19 +28,19 @@
 	</dependencyManagement>
 
 	<dependencies>
-		<!-- REST + JSON -->
-		<dependency>
-			<groupId>io.quarkus</groupId>
-			<artifactId>quarkus-rest-jackson</artifactId>
-		</dependency>
-
 		<!-- CDI -->
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-arc</artifactId>
 		</dependency>
 
-		<!-- JPA/Hibernate -->
+		<!-- Parse the incident-created event JSON -->
+		<dependency>
+			<groupId>io.quarkus</groupId>
+			<artifactId>quarkus-jackson</artifactId>
+		</dependency>
+
+		<!-- JPA/Hibernate — reads/writes the same Postgres schema api-service owns -->
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-hibernate-orm</artifactId>
@@ -53,7 +50,7 @@
 			<artifactId>quarkus-jdbc-postgresql</artifactId>
 		</dependency>
 
-		<!-- Kafka producer: publish an event after an incident is created -->
+		<!-- Kafka consumer -->
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-messaging-kafka</artifactId>
@@ -66,32 +63,9 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>io.rest-assured</groupId>
-			<artifactId>rest-assured</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>${mockito.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<version>${assertj.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>postgresql</artifactId>
-			<version>${testcontainers.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.testcontainers</groupId>
-			<artifactId>junit-jupiter</artifactId>
-			<version>${testcontainers.version}</version>
+			<version>3.26.3</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

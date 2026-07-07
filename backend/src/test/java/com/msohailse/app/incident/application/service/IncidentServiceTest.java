@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.msohailse.app.incident.application.port.out.CommentRepositoryPort;
+import com.msohailse.app.incident.application.port.out.IncidentEventPublisherPort;
 import com.msohailse.app.incident.application.port.out.IncidentRepositoryPort;
 import com.msohailse.app.incident.application.port.out.TagRepositoryPort;
 import com.msohailse.app.incident.application.port.out.UserRepositoryPort;
@@ -49,6 +50,9 @@ public class IncidentServiceTest {
 
 	@Mock
 	private CommentRepositoryPort commentRepository;
+
+	@Mock
+	private IncidentEventPublisherPort eventPublisher;
 
 	private AutoCloseable closeable;
 	private User reportedBy;
@@ -110,6 +114,7 @@ public class IncidentServiceTest {
 		assertThat(saved.getReportedBy()).isEqualTo(reportedBy);
 		assertThat(saved.getTag()).isEqualTo(existingTag);
 		assertThat(created).isSameAs(saved);
+		verify(eventPublisher).publishIncidentCreated(created.getId(), TITLE, DESCRIPTION, TAG_TITLE);
 	}
 
 	@Test

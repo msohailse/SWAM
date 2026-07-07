@@ -29,12 +29,27 @@
   everyone's + a Close-with-comment action), a per-incident expandable comment thread
   with a reply box (both roles can post), an admin-only tags CRUD screen gated by a
   functional route guard (`adminGuard`).
-- `deploy/docker-compose.yml` — postgres + backend + frontend(nginx), env-var
-  credentials only (`.env`, gitignored), backend verified to scale
-  (`docker compose up --scale backend=3`) since it has no fixed host port.
-- **Not built yet**: Kafka, the Analyzer service, the two-stage dedup (pg_trgm/pgvector),
-  the async `202`/tracking flow, the transactional outbox, Minikube/K8s. These are the
-  **next slice** — see §1/§3 for the design, unchanged, just not started.
+- `deploy/docker-compose.yml` — postgres + kafka + backend + analyzer-service +
+  frontend(nginx), env-var credentials only (`.env`, gitignored), backend verified to
+  scale (`docker compose up --scale backend=3`) since it has no fixed host port.
+- **Kafka + `backend/analyzer-service/` — built and verified 2026-07-07.** `POST
+  /incidents` stays exactly as it was (synchronous, returns the created incident
+  immediately — this did NOT become the `202`/async flow described in §1); after saving,
+  `IncidentService.create()` publishes a JSON event on the `incident-created` topic via a
+  new `IncidentEventPublisherPort`/`KafkaIncidentEventPublisher` adapter. A **separate**
+  Quarkus project, `backend/analyzer-service` (own `pom.xml`, own Docker image, zero REST
+  endpoints, zero shared Java code with `backend/` — only the DB schema and the Kafka
+  topic connect them), consumes that topic and runs **Stage-1 dedup only** (`pg_trgm`
+  `similarity()` via a native query, threshold 0.4, against other open incidents,
+  excluding itself). On a hit, it writes a system-authored `Comment` ("Possible duplicate
+  of incident #X") directly to Postgres using its own minimal JPA entities. Verified live:
+  two near-identical incidents → the second gets flagged; a genuinely unrelated third
+  incident does not (no false positive). The pg_trgm extension is created by the analyzer
+  itself at startup (`CREATE EXTENSION IF NOT EXISTS pg_trgm`), since `backend/`'s own
+  schema generation only knows about its `@Entity` classes.
+- **Not built yet**: Stage-2 semantic dedup (pgvector/embeddings — still deferred per §3),
+  the async `202`/tracking flow (deliberately not built — see above), the transactional
+  outbox, Minikube/K8s. These remain the next slices.
 
 **Decisions revised from earlier in the file (details in §4/§8):**
 - Hexagonal variant is **Pragmatic**, not Strict, for this codebase — domain entities
@@ -146,10 +161,10 @@ LLM "is this the same incident?").
 |---|----------|-----------|--------|
 | D1 | **Quarkus** as Jakarta EE runtime | Implements Jakarta REST/CDI/JPA + MicroProfile; first-class Kafka (SmallRye Reactive Messaging), Dev Services (auto-starts Postgres/Kafka in dev), tiny containers for K8s | ✅ **verified 2026-07-06**: course's own module IIB (2026-04-21 lecture, Dr. Scommegna) is literally "Quarkus in the development of microservices orchestrated by Kubernetes" (paired with Istio/K6/Grafana/OpenTelemetry per `course_content` forum announcement). No WildFly/Payara/GlassFish named anywhere in the export. |
 | D1b | **Pragmatic Hexagonal (JPA-in-domain)** — domain entities keep `@Entity` directly, no separate mapping layer | Reversed 2026-07-07 from the earlier Strict default: the migrated `backend/` codebase's entities were already JPA-annotated and already tested; rewriting them pure would be throwaway work for no report benefit, since the course's own slides (`SWAM26-19_HexagonalAndCleanArchitectures.pdf`) explicitly sanction this variant too. Ports (`application/port/out/`) still isolate persistence behind interfaces — only the "zero framework imports in domain" purity rule is relaxed | ✅ implemented 2026-07-07 |
-| D2 | **Two services** (API + Analyzer), one monorepo | Enough to demonstrate EDA + independent scaling; more services = scope creep | proposed |
-| D3 | **Lightweight CQRS, no event sourcing** | Separate read models (JPA projections / views) updated from events; event sourcing would double the project size | proposed |
-| D4 | **Transactional outbox pattern** for publishing to Kafka | Incident+Tags+outbox row commit in ONE transaction → this *is* the "strict ACID" requirement from the proposal, and a strong report section. A simple poller relays outbox → Kafka | proposed |
-| D5 | **Dedup = pg_trgm + pgvector embeddings** (§3) | Intelligent, self-contained, testable, free | proposed |
+| D2 | **Two services** (API + Analyzer), one monorepo, no shared Java code between them (only the DB schema + Kafka topic connect them) | Enough to demonstrate EDA + independent scaling; more services = scope creep. No shared library because that would couple two "independent" services at the code level — each owns its own minimal model of the shared tables | ✅ implemented 2026-07-07: `backend/` (api-service) + `backend/analyzer-service/`, verified live via Docker |
+| D3 | **Lightweight CQRS, no event sourcing** | Separate read models (JPA projections / views) updated from events; event sourcing would double the project size | proposed, not started — current reads are direct queries against the write-side tables |
+| D4 | **Transactional outbox pattern** for publishing to Kafka | Incident+Tags+outbox row commit in ONE transaction → this *is* the "strict ACID" requirement from the proposal, and a strong report section. A simple poller relays outbox → Kafka | **cut for time** (see §7 Day-1 cuts) — publish happens directly in `IncidentService.create()` after `save()`, not via an outbox row. Document the dual-write risk this reintroduces as "future developments." |
+| D5 | **Dedup = pg_trgm** implemented; **+ pgvector embeddings** deferred (§3) | Intelligent, self-contained, testable, free | ✅ Stage-1 (pg_trgm) implemented + verified 2026-07-07 in `analyzer-service`'s `DuplicateDetector`; Stage-2 (embeddings) still not started |
 | D6 | **Plain Kubernetes HPA (CPU-based)**, not KEDA | User already knows K8s and wants a real deployment within the 4-day window; plain HPA is exactly what the course's own Kubernetes lecture teaches (control loop, desired-replica formula, stabilization window) — safer to actually deploy correctly than KEDA-on-Kafka-lag, which isn't covered in any course material we found | ✅ decided 2026-07-06, actually deployed (not manifests-only) |
 | D7 | **Minikube** for local K8s | User's preference — already knows Kubernetes; same role `kind` would have played (single-node cluster on the laptop), swapped for the tool they're fluent in. Real deployment, not "designed, not deployed" | ✅ decided 2026-07-06 |
 | D8 | **k6** for synthetic load + measurements | Scriptable, produces CSV/JSON for report charts | proposed |
@@ -192,23 +207,29 @@ SWAM/
   CLAUDE.md               # this file
   ProjectIdea.md          # original proposal + professor reply
   course_content/         # Moodle export (read-only reference)
-  backend/                # Quarkus REST API — Incident/Tag/User/Comment CRUD (this IS the api-service; analyzer-service doesn't exist yet)
+  backend/                # Quarkus REST API (api-service) — Incident/Tag/User/Comment CRUD
     src/main/java/com/msohailse/app/incident/
       domain/             # Incident, Tag, User, UserType, Severity, Comment — @Entity (Pragmatic Hexagonal)
-      application/port/out/    # *RepositoryPort interfaces
+      application/port/out/    # *RepositoryPort + IncidentEventPublisherPort interfaces
       application/service/     # IncidentService, TagService, UserService (@Transactional)
       adapters/in/rest/        # IncidentResource, TagResource, UserResource + exception mapper
       adapters/out/persistence/ # *PostgresRepository (@ApplicationScoped, @Inject EntityManager)
+      adapters/out/messaging/   # KafkaIncidentEventPublisher — publishes incident-created events
     src/main/docker/Dockerfile.jvm
+    analyzer-service/     # separate Quarkus project — Kafka consumer, Stage-1 dedup (pg_trgm)
+      src/main/java/com/msohailse/app/analyzer/
+        domain/                    # own minimal Incident/User/Comment @Entity mapped to the same tables — no shared code with backend/
+        application/DuplicateDetector.java  # pg_trgm similarity query + system-comment write + pg_trgm extension bootstrap
+        adapters/in/messaging/     # IncidentCreatedConsumer (@Incoming)
+      src/main/docker/Dockerfile.jvm
   frontend/               # Angular 19 standalone SPA (login/register/incidents/tags, adminGuard)
     Dockerfile, nginx.conf
   deploy/
-    docker-compose.yml    # postgres + backend + frontend, host port 5433 for postgres (5432 taken by another project)
+    docker-compose.yml    # kafka + postgres + backend + analyzer-service + frontend, host port 5433 for postgres (5432 taken by another project)
     .env.example          # copy to .env (gitignored) for real credentials
 ```
 
-**Not yet split out / not yet created:** `backend/analyzer-service/` (Kafka consumer +
-dedup — next slice), `deploy/k8s/` (Minikube manifests — Day 3), `loadtest/` (k6 — Day 3),
+**Not yet created:** `deploy/k8s/` (Minikube manifests — Day 3), `loadtest/` (k6 — Day 3),
 `report/`, `docs/` (report material — Day 4).
 
 ---
@@ -270,15 +291,16 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - 📸 Capture: tech stack table, domain class diagram (now includes `Comment`), ER diagram, REST API sequence diagram
 
 ### Day 2 — Analyzer + Full Dedup + CQRS Read Side
-- [ ] Kafka consumer in analyzer-service (consumer group `analyzer`), idempotent processing
-- [ ] Stage-1: `pg_trgm` similarity query against open cases, configurable threshold
-- [ ] Stage-2: `pgvector` extension + `case_embeddings` table; `langchain4j-embeddings-all-minilm-l6-v2`; cosine similarity top-k search
-- [ ] Combine stages: trgm hit → duplicate; else embedding hit → duplicate; else new `CaseNumber`
-- [ ] Tune thresholds against ~5 hand-picked pairs (duplicate + near-miss), record the numbers
-- [ ] Read model `case_summary` (case number, status, severity, tags, report count) updated by analyzer
-- [ ] Query endpoints: `GET /cases?tag=&severity=&status=`, `GET /cases/{caseNumber}`, `GET /stats`
-- [ ] Integration test: two similar reports → one case, two linked reports
-- 📸 Capture: EDA component diagram, dedup decision flowchart + threshold table, CQRS diagram
+- [x] Kafka consumer in analyzer-service (consumer group `analyzer`) — not explicitly
+  idempotent (no dedup-of-events-themselves logic) since re-processing the same
+  incident-created event twice just adds one more duplicate-flag comment, harmless for a prototype
+- [x] Stage-1: `pg_trgm` similarity query against other open incidents, threshold 0.4 (native query, `DuplicateDetector.checkForDuplicate`) — verified live: similar pair flagged, unrelated incident not
+- [ ] Stage-2: `pgvector` + embeddings — still deferred (§3), not started
+- [x] "Combine stages" simplified to Stage-1 only for now: trgm hit → system comment flagging the duplicate; no hit → nothing (there's no separate `CaseNumber`/case concept anymore — see §0, we pivoted to direct Incident CRUD, so "duplicate" is expressed as a comment on the incident, not a case-linking operation)
+- [ ] Threshold tuning against a hand-picked pair set — not done, 0.4 is a first guess verified against one obvious-duplicate pair and one unrelated pair, not tuned against a real set
+- [ ] Read model / CQRS query endpoints (`case_summary`, `/stats`) — not built; current reads are direct `GET /incidents`, `GET /incidents/user/{id}` against the write-side tables, no separate read model yet
+- [ ] Automated test for the dedup flow — verified manually via curl (see §0), no `@QuarkusTest` covering the Kafka round-trip yet (would need Dev Services Kafka+Postgres wired together, skipped for time per the "testing not required" call in §8)
+- 📸 Capture: EDA component diagram (backend → Kafka → analyzer-service), dedup decision flow (trgm-only for now)
 
 ### Day 3 — Frontend + Real Minikube Deployment + Scaling Demo
 - [ ] Angular scaffold (standalone components, Angular Material)
