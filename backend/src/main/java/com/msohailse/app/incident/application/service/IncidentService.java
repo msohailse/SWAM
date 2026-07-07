@@ -78,6 +78,30 @@ public class IncidentService {
 		return incidentRepository.findByUser(user);
 	}
 
+	// CQRS-lite: a read-only query endpoint (GET /incidents?tag=&severity=&status=) that
+	// is separate from the create/update/close write path above. It doesn't introduce a
+	// separate read model/projection table (that would be full CQRS) — it just lets the
+	// read side filter flexibly without touching the write side at all.
+	public List<Incident> findFiltered(String tagTitle, Severity severity, String status) {
+		Boolean closed = parseStatus(status);
+		return incidentRepository.findFiltered(tagTitle, severity, closed);
+	}
+
+	// status is a query string, so it comes in as "open"/"closed", not a boolean —
+	// translate it here, once, instead of pushing string-parsing into the repository.
+	private Boolean parseStatus(String status) {
+		if (status == null) {
+			return null;
+		}
+		if (status.equalsIgnoreCase("open")) {
+			return false;
+		}
+		if (status.equalsIgnoreCase("closed")) {
+			return true;
+		}
+		throw new IllegalArgumentException("status must be 'open' or 'closed', got: " + status);
+	}
+
 	@Transactional
 	public Incident update(int id, String title, String description, Severity severity) {
 		Incident incident = incidentRepository.findById(id);

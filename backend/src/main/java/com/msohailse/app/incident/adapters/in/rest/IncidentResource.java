@@ -22,9 +22,15 @@ public class IncidentResource {
 	public record CloseIncidentRequest(int actingUserId, String commentText) {}
 	public record AddCommentRequest(int authorUserId, String text) {}
 
+	// CQRS-lite: GET /incidents?tag=&severity=&status= — all three are optional, plain
+	// GET /incidents still returns everything, unfiltered, exactly as before.
 	@GET
-	public List<Incident> findAll() {
-		return incidentService.findAll();
+	public List<Incident> findAll(@QueryParam("tag") String tag, @QueryParam("severity") Severity severity,
+			@QueryParam("status") String status) {
+		if (tag == null && severity == null && status == null) {
+			return incidentService.findAll();
+		}
+		return incidentService.findFiltered(tag, severity, status);
 	}
 
 	@GET

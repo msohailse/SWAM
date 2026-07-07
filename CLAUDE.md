@@ -47,6 +47,19 @@
   incident does not (no false positive). The pg_trgm extension is created by the analyzer
   itself at startup (`CREATE EXTENSION IF NOT EXISTS pg_trgm`), since `backend/`'s own
   schema generation only knows about its `@Entity` classes.
+- **CQRS-lite — built and verified 2026-07-07.** `GET /incidents` now accepts optional
+  `?tag=&severity=&status=` query params (`IncidentResource.findAll`,
+  `IncidentService.findFiltered`, `IncidentRepositoryPort.findFiltered` +
+  `IncidentPostgresRepository`'s dynamic-JPQL implementation). This is the "bare minimum"
+  version of the CQRS pattern named in `ProjectIdea.md` §2 (praised by the professor) —
+  it separates the read side's query flexibility from the write path, without a separate
+  read-model/projection table or event sourcing (that stays out of scope, see D3). Plain
+  `GET /incidents` with no params still returns everything, unfiltered, exactly as
+  before. Verified live via curl: filter by tag alone, by severity alone, by status
+  alone, a combined filter with no matches, and an invalid `status` value returning a
+  clean `400`.
+- **Top-level `README.md` added** — setup/run steps (Docker Compose quick-start, running
+  each service individually for dev, API quick reference, test commands).
 - **Not built yet**: Stage-2 semantic dedup (pgvector/embeddings — still deferred per §3),
   the async `202`/tracking flow (deliberately not built — see above), the transactional
   outbox, Minikube/K8s. These remain the next slices.
@@ -298,7 +311,7 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - [ ] Stage-2: `pgvector` + embeddings — still deferred (§3), not started
 - [x] "Combine stages" simplified to Stage-1 only for now: trgm hit → system comment flagging the duplicate; no hit → nothing (there's no separate `CaseNumber`/case concept anymore — see §0, we pivoted to direct Incident CRUD, so "duplicate" is expressed as a comment on the incident, not a case-linking operation)
 - [ ] Threshold tuning against a hand-picked pair set — not done, 0.4 is a first guess verified against one obvious-duplicate pair and one unrelated pair, not tuned against a real set
-- [ ] Read model / CQRS query endpoints (`case_summary`, `/stats`) — not built; current reads are direct `GET /incidents`, `GET /incidents/user/{id}` against the write-side tables, no separate read model yet
+- [x] CQRS-lite filtered read endpoint — `GET /incidents?tag=&severity=&status=` (bare minimum, no separate read-model/projection table); `case_summary`/`/stats` style read models still not built, current reads otherwise are direct `GET /incidents`, `GET /incidents/user/{id}` against the write-side tables
 - [ ] Automated test for the dedup flow — verified manually via curl (see §0), no `@QuarkusTest` covering the Kafka round-trip yet (would need Dev Services Kafka+Postgres wired together, skipped for time per the "testing not required" call in §8)
 - 📸 Capture: EDA component diagram (backend → Kafka → analyzer-service), dedup decision flow (trgm-only for now)
 
