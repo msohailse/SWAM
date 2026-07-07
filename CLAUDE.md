@@ -18,11 +18,16 @@
   Swing UI and the hand-rolled `TransactionManager` are gone; CDI `@Transactional`
   services replace them. Full CRUD (create/read/**update**/**delete**) on `Incident` and
   `Tag`, register/login on `User`. New `Comment` entity (one-to-many off `Incident`) —
-  an admin closing an incident must attach a comment. `UserType { REPORTER, ADMIN }`
-  stub role (no JWT/real auth).
+  **a real conversation thread, not just a close-time note**: an admin closing an
+  incident must attach a comment (`PATCH /incidents/{id}/close`), and *either* the
+  reporter *or* an admin can keep posting replies afterward
+  (`POST /incidents/{id}/comments`, `GET /incidents/{id}/comments` for the full thread).
+  Only the closing action itself is admin-gated; replying is not. `UserType { REPORTER,
+  ADMIN }` stub role (no JWT/real auth).
 - `frontend/` — new Angular 19 standalone app: login/register, an incidents screen whose
   data source and actions are role-driven (reporters see/manage their own; admins see
-  everyone's + a Close-with-comment action), an admin-only tags CRUD screen gated by a
+  everyone's + a Close-with-comment action), a per-incident expandable comment thread
+  with a reply box (both roles can post), an admin-only tags CRUD screen gated by a
   functional route guard (`adminGuard`).
 - `deploy/docker-compose.yml` — postgres + backend + frontend(nginx), env-var
   credentials only (`.env`, gitignored), backend verified to scale
@@ -258,9 +263,9 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - [x] Ports: `IncidentRepositoryPort`, `TagRepositoryPort`, `UserRepositoryPort`, `CommentRepositoryPort`
 - [x] JPA adapters (`adapters/out/persistence/`), Incident↔Tag `@ManyToOne` (kept from the existing codebase — deviates from `ProjectIdea.md`'s many-to-many, document this explicitly in the report)
 - [ ] **ACID showcase test** — not re-verified after the Quarkus migration; the original Swing-era rollback test was removed with the Swing code. Needs a fresh one (incident+comment or incident+tag forced-failure rollback) — flagged for Day 2.
-- [x] Full CRUD REST instead of the async flow: `POST/GET/PUT/DELETE /incidents`, `/tags`, `POST /users/register|login`, `PATCH /incidents/{id}/close` (admin-only, requires a `Comment`), `GET /incidents/{id}/comments`
+- [x] Full CRUD REST instead of the async flow: `POST/GET/PUT/DELETE /incidents`, `/tags`, `POST /users/register|login`, `PATCH /incidents/{id}/close` (admin-only, requires a `Comment`), `GET /incidents/{id}/comments`, `POST /incidents/{id}/comments` (reply — either role, added 2026-07-07 so the reporter can respond to the admin's closing comment, not just read it)
 - [ ] `POST /reports` → `202` + Kafka publish — **not built yet**, this is Day 2's first task
-- [x] Angular frontend (login/register/incidents/tags, `adminGuard`) — originally planned for Day 3, built early since it was needed to validate the REST API
+- [x] Angular frontend (login/register/incidents/tags, `adminGuard`, per-incident expandable comment thread + reply box) — originally planned for Day 3, built early since it was needed to validate the REST API
 - [x] Verified end-to-end: `mvn test` (107 tests green), `mvn quarkus:dev` + manual curl CRUD, `ng serve` via proxy, and the full `docker compose up --build` stack (including `--scale backend=3`)
 - 📸 Capture: tech stack table, domain class diagram (now includes `Comment`), ER diagram, REST API sequence diagram
 

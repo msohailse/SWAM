@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { IncidentService } from '../../services/incident.service';
-import { Incident, Severity } from '../../models/models';
+import { Comment, Incident, Severity } from '../../models/models';
 
 @Component({
   selector: 'app-incidents',
@@ -23,6 +23,11 @@ export class IncidentsComponent implements OnInit {
   editTitle = '';
   editDescription = '';
   editSeverity: Severity = 'LOW';
+
+  // Comment thread: which incident's thread is expanded, its comments, and the reply draft.
+  openThreadId: number | null = null;
+  comments: Comment[] = [];
+  replyText = '';
 
   constructor(public auth: AuthService, private incidentService: IncidentService) {}
 
@@ -82,10 +87,39 @@ export class IncidentsComponent implements OnInit {
     if (!commentText) {
       return;
     }
-    this.incidentService.close(incident.id, user.id, commentText).subscribe(() => this.reload());
+    this.incidentService.close(incident.id, user.id, commentText).subscribe(() => {
+      this.reload();
+      this.openThread(incident);
+    });
   }
 
   delete(id: number): void {
     this.incidentService.delete(id).subscribe(() => this.reload());
+  }
+
+  toggleThread(incident: Incident): void {
+    if (this.openThreadId === incident.id) {
+      this.openThreadId = null;
+      this.comments = [];
+      return;
+    }
+    this.openThread(incident);
+  }
+
+  private openThread(incident: Incident): void {
+    this.openThreadId = incident.id;
+    this.replyText = '';
+    this.incidentService.findComments(incident.id).subscribe((comments) => (this.comments = comments));
+  }
+
+  reply(incidentId: number): void {
+    const user = this.auth.currentUser();
+    if (!user || !this.replyText.trim()) {
+      return;
+    }
+    this.incidentService.addComment(incidentId, user.id, this.replyText).subscribe((comment) => {
+      this.comments = [...this.comments, comment];
+      this.replyText = '';
+    });
   }
 }

@@ -193,4 +193,30 @@ public class IncidentServiceTest {
 
 		verify(incidentRepository).delete(7);
 	}
+
+	@Test
+	void addCommentAllowsTheReporterToReply() {
+		Incident existing = new Incident();
+		existing.setTitle(TITLE);
+		existing.setDescription(DESCRIPTION);
+		existing.setSeverity(SEVERITY);
+		existing.setReportedBy(reportedBy);
+		existing.setTag(new Tag());
+		when(incidentRepository.findById(5)).thenReturn(existing);
+
+		Comment reply = incidentService.addComment(5, USER_ID, "Thanks, confirming it's fixed now");
+
+		assertThat(reply.getText()).isEqualTo("Thanks, confirming it's fixed now");
+		assertThat(reply.getIncident()).isEqualTo(existing);
+		assertThat(reply.getAuthor()).isEqualTo(reportedBy);
+		verify(commentRepository).save(reply);
+	}
+
+	@Test
+	void addCommentWhenIncidentNotFoundThrows() {
+		when(incidentRepository.findById(404)).thenReturn(null);
+
+		assertThatThrownBy(() -> incidentService.addComment(404, USER_ID, "hi"))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
 }

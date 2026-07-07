@@ -92,6 +92,19 @@ public class IncidentResourceTest {
 				.body("[0].text", equalTo("Resolved, fixed the wiring"));
 
 		given()
+				.contentType("application/json")
+				.body("{\"authorUserId\":" + reporterId + ",\"text\":\"Thanks, confirming it's fixed\"}")
+				.when().post("/incidents/" + id + "/comments")
+				.then().statusCode(200)
+				.body("text", equalTo("Thanks, confirming it's fixed"));
+
+		given()
+				.when().get("/incidents/" + id + "/comments")
+				.then().statusCode(200)
+				.body("size()", equalTo(2))
+				.body("[1].text", equalTo("Thanks, confirming it's fixed"));
+
+		given()
 				.when().delete("/incidents/" + id)
 				.then().statusCode(204);
 	}

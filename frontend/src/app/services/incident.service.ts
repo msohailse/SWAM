@@ -31,6 +31,10 @@ export class IncidentService {
     return this.http.get<Comment[]>(`/incidents/${id}/comments`);
   }
 
+  addComment(id: number, authorUserId: number, text: string): Observable<Comment> {
+    return this.http.post<Comment>(`/incidents/${id}/comments`, { authorUserId, text });
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`/incidents/${id}`);
   }

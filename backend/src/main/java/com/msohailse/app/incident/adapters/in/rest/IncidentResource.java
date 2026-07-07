@@ -20,6 +20,7 @@ public class IncidentResource {
 	public record CreateIncidentRequest(String title, String description, Severity severity, String tagTitle, int reportedByUserId) {}
 	public record UpdateIncidentRequest(String title, String description, Severity severity) {}
 	public record CloseIncidentRequest(int actingUserId, String commentText) {}
+	public record AddCommentRequest(int authorUserId, String text) {}
 
 	@GET
 	public List<Incident> findAll() {
@@ -60,6 +61,12 @@ public class IncidentResource {
 	@Path("/{id}/comments")
 	public List<Comment> findComments(@PathParam("id") int id) {
 		return incidentService.findComments(id);
+	}
+
+	@POST
+	@Path("/{id}/comments")
+	public Comment addComment(@PathParam("id") int id, AddCommentRequest request) {
+		return incidentService.addComment(id, request.authorUserId(), request.text());
 	}
 
 	@DELETE

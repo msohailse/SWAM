@@ -39,7 +39,8 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let incident of incidents">
+      <ng-container *ngFor="let incident of incidents">
+      <tr>
         <ng-container *ngIf="editingId === incident.id; else readonlyRow">
           <td><input [(ngModel)]="editTitle" name="editTitle" /></td>
           <td><input [(ngModel)]="editDescription" name="editDescription" /></td>
@@ -69,9 +70,26 @@
             <button (click)="startEdit(incident)">Edit</button>
             <button (click)="delete(incident.id)">Delete</button>
             <button *ngIf="auth.isAdmin() && !incident.closed" (click)="close(incident)">Close</button>
+            <button (click)="toggleThread(incident)">{{ openThreadId === incident.id ? 'Hide comments' : 'Comments' }}</button>
           </td>
         </ng-template>
       </tr>
+      <tr *ngIf="openThreadId === incident.id" class="thread-row">
+        <td colspan="7">
+          <div class="thread">
+            <p *ngIf="comments.length === 0">No comments yet.</p>
+            <p *ngFor="let comment of comments">
+              <strong>{{ comment.author.firstName }} ({{ comment.author.userType }}):</strong>
+              {{ comment.text }}
+            </p>
+            <div class="reply-form">
+              <input [(ngModel)]="replyText" name="replyText" placeholder="Write a reply..." />
+              <button (click)="reply(incident.id)">Reply</button>
+            </div>
+          </div>
+        </td>
+      </tr>
+      </ng-container>
     </tbody>
   </table>
 </div>

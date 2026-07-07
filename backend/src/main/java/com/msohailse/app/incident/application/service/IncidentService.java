@@ -94,13 +94,32 @@ public class IncidentService {
 		incident.setIsClosed(true);
 		incidentRepository.update(incident);
 
-		Comment comment = new Comment();
-		comment.setText(commentText);
-		comment.setIncident(incident);
-		comment.setAuthor(actingUser);
-		commentRepository.save(comment);
-
+		saveComment(incident, actingUser, commentText);
 		return incident;
+	}
+
+	// Both the reporter and an admin can post to an incident's comment thread — e.g. the
+	// reporter replying to the admin's closing comment. Only closing itself is admin-only.
+	@Transactional
+	public Comment addComment(int incidentId, int authorUserId, String text) {
+		Incident incident = incidentRepository.findById(incidentId);
+		if (incident == null) {
+			throw new IllegalArgumentException("Incident not found: " + incidentId);
+		}
+		User author = userRepository.findById(authorUserId);
+		if (author == null) {
+			throw new IllegalArgumentException("User not found: " + authorUserId);
+		}
+		return saveComment(incident, author, text);
+	}
+
+	private Comment saveComment(Incident incident, User author, String text) {
+		Comment comment = new Comment();
+		comment.setText(text);
+		comment.setIncident(incident);
+		comment.setAuthor(author);
+		commentRepository.save(comment);
+		return comment;
 	}
 
 	public List<Comment> findComments(int incidentId) {
