@@ -1,0 +1,45 @@
+<div class="page">
+  <h1>Tags</h1>
+
+  <form class="create-form" (ngSubmit)="create()">
+    <label>
+      Title
+      <input name="newTitle" [(ngModel)]="newTitle" required />
+    </label>
+    <label>
+      Description
+      <input name="newDescription" [(ngModel)]="newDescription" />
+    </label>
+    <button type="submit">Add tag</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let tag of tags">
+        <ng-container *ngIf="editingId === tag.id; else readonlyRow">
+          <td><input [(ngModel)]="editTitle" name="editTitle" /></td>
+          <td><input [(ngModel)]="editDescription" name="editDescription" /></td>
+          <td>
+            <button (click)="saveEdit(tag.id)">Save</button>
+            <button (click)="cancelEdit()">Cancel</button>
+          </td>
+        </ng-container>
+        <ng-template #readonlyRow>
+          <td>{{ tag.tagTitle }}</td>
+          <td>{{ tag.tagDescription }}</td>
+          <td>
+            <button (click)="startEdit(tag)">Edit</button>
+            <button (click)="delete(tag.id)">Delete</button>
+          </td>
+        </ng-template>
+      </tr>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,17 @@
+# Secrets
+deploy/.env
+.env
+
+# Java / Maven
+backend/target/
+
+# Node / Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# OS
+.DS_Store
+
+# Moodle export — copyrighted course material, kept local-only, not for the repo
+course_content/

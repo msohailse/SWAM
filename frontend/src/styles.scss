@@ -1,0 +1,88 @@
+/* You can add global styles to this file, and also import other style files */
+
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: #263238;
+  color: white;
+
+  a {
+    color: white;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  button {
+    background: #455a64;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+}
+
+.page {
+  max-width: 960px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+  margin-bottom: 1.5rem;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+  }
+
+  input,
+  select,
+  textarea {
+    padding: 0.4rem;
+    font-size: 1rem;
+  }
+
+  button {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.5rem;
+    border-bottom: 1px solid #ddd;
+  }
+
+  button {
+    margin-right: 0.35rem;
+    cursor: pointer;
+  }
+}
+
+.error {
+  color: #c62828;
+}

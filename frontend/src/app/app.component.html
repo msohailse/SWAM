@@ -1,0 +1,10 @@
+<nav *ngIf="auth.currentUser() as user">
+  <span>SWAM Incident Reporting</span>
+  <a routerLink="/incidents">Incidents</a>
+  <a *ngIf="auth.isAdmin()" routerLink="/tags">Tags</a>
+  <span class="spacer"></span>
+  <span>{{ user.firstName }} ({{ user.userType }})</span>
+  <button (click)="logout()">Log out</button>
+</nav>
+
+<router-outlet></router-outlet>

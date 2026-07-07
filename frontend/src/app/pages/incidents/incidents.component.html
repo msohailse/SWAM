@@ -1,0 +1,77 @@
+<div class="page">
+  <h1>{{ auth.isAdmin() ? 'All Incidents (Admin)' : 'My Incidents' }}</h1>
+
+  <form class="create-form" (ngSubmit)="create()">
+    <h2>Report an incident</h2>
+    <label>
+      Title
+      <input name="newTitle" [(ngModel)]="newTitle" required />
+    </label>
+    <label>
+      Description
+      <textarea name="newDescription" [(ngModel)]="newDescription"></textarea>
+    </label>
+    <label>
+      Severity
+      <select name="newSeverity" [(ngModel)]="newSeverity">
+        <option value="LOW">LOW</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="HIGH">HIGH</option>
+      </select>
+    </label>
+    <label>
+      Tag
+      <input name="newTagTitle" [(ngModel)]="newTagTitle" required />
+    </label>
+    <button type="submit">Submit</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Severity</th>
+        <th>Tag</th>
+        <th>Reported by</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let incident of incidents">
+        <ng-container *ngIf="editingId === incident.id; else readonlyRow">
+          <td><input [(ngModel)]="editTitle" name="editTitle" /></td>
+          <td><input [(ngModel)]="editDescription" name="editDescription" /></td>
+          <td>
+            <select [(ngModel)]="editSeverity" name="editSeverity">
+              <option value="LOW">LOW</option>
+              <option value="MEDIUM">MEDIUM</option>
+              <option value="HIGH">HIGH</option>
+            </select>
+          </td>
+          <td>{{ incident.tag.tagTitle }}</td>
+          <td>{{ incident.reportedBy.firstName }} {{ incident.reportedBy.lastName }}</td>
+          <td>{{ incident.closed ? 'Closed' : 'Open' }}</td>
+          <td>
+            <button (click)="saveEdit(incident.id)">Save</button>
+            <button (click)="cancelEdit()">Cancel</button>
+          </td>
+        </ng-container>
+        <ng-template #readonlyRow>
+          <td>{{ incident.title }}</td>
+          <td>{{ incident.description }}</td>
+          <td>{{ incident.severity }}</td>
+          <td>{{ incident.tag.tagTitle }}</td>
+          <td>{{ incident.reportedBy.firstName }} {{ incident.reportedBy.lastName }}</td>
+          <td>{{ incident.closed ? 'Closed' : 'Open' }}</td>
+          <td>
+            <button (click)="startEdit(incident)">Edit</button>
+            <button (click)="delete(incident.id)">Delete</button>
+            <button *ngIf="auth.isAdmin() && !incident.closed" (click)="close(incident)">Close</button>
+          </td>
+        </ng-template>
+      </tr>
+    </tbody>
+  </table>
+</div>

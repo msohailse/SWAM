@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      # Host port 5433, not 5432 — 5432 is already used by another project's Postgres
+      # on this machine. Internal container-to-container traffic (backend -> postgres)
+      # is unaffected, it still uses the default 5432 on the docker network.
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: src/main/docker/Dockerfile.jvm
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+    # No fixed host port mapping on purpose: a fixed "8080:8080" would make every
+    # replica fight over the same host port, breaking `docker compose up --scale
+    # backend=N`. The frontend's nginx reaches it over the internal docker network
+    # (which load-balances across replicas by service name), and Docker still assigns
+    # each replica its own random host port if you need to curl one directly
+    # (`docker compose port backend 8080 --index=1`).
+    expose:
+      - "8080"
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ../frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
