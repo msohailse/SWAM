@@ -1,8 +1,9 @@
 package com.msohailse.app.analyzer.application;
 
-import com.msohailse.app.analyzer.domain.Comment;
 import com.msohailse.app.analyzer.domain.Incident;
-import com.msohailse.app.analyzer.domain.User;
+import com.msohailse.app.analyzer.adapters.out.rest.BackendApiClient;
+import com.msohailse.app.analyzer.adapters.out.rest.BackendApiClient.MarkDuplicateRequest;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -22,6 +23,10 @@ public class DuplicateDetector {
 
 	@Inject
 	EntityManager em;
+
+	@Inject
+	@RestClient
+	BackendApiClient backendApiClient;
 
 	// pg_trgm isn't created by Hibernate's schema generation (that only knows about
 	// tables/columns from @Entity classes), so the Analyzer — the service that actually
@@ -59,29 +64,8 @@ public class DuplicateDetector {
 			return; // deleted in the meantime, nothing to comment on
 		}
 
-		Comment comment = new Comment();
-		comment.setText("Possible duplicate of incident #" + matchedId + " (\"" + matchedTitle + "\")");
-		comment.setIncident(incident);
-		comment.setAuthor(findOrCreateSystemUser());
-		em.persist(comment);
+		backendApiClient.markDuplicate(incidentId, new MarkDuplicateRequest(matchedId));
 
 		LOG.info("Incident " + incidentId + ": flagged as likely duplicate of #" + matchedId);
-	}
-
-	private User findOrCreateSystemUser() {
-		try {
-			return em.createQuery("select u from User u where u.email = :email", User.class)
-					.setParameter("email", SYSTEM_USER_EMAIL)
-					.getSingleResult();
-		} catch (NoResultException e) {
-			User systemUser = new User();
-			systemUser.setFirstName("Duplicate");
-			systemUser.setLastName("Analyzer");
-			systemUser.setEmail(SYSTEM_USER_EMAIL);
-			systemUser.setPassword("not-a-real-login");
-			systemUser.setUserType("ADMIN");
-			em.persist(systemUser);
-			return systemUser;
-		}
 	}
 }

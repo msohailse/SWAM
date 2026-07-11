@@ -27,6 +27,9 @@ docker compose up -d --build
 
 Open **http://localhost:4200** for the app. Postgres is on host port **5433** (not 5432).
 
+Two logins are seeded automatically at startup (configurable in `deploy/.env`):
+**superadmin@swam.local / Admin1234** (admin) and **user@swam.local / User12345** (reporter).
+
 Stop with `docker compose down` (add `-v` to also wipe the Postgres volume).
 
 ## API quick reference

@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -33,6 +35,10 @@ public class User {
 	@Column(nullable=false)
 	@Enumerated(EnumType.STRING)
 	private UserType userType;
+
+	@ManyToOne
+	@JoinColumn(name="department_id", nullable=true)
+	private Department department;
 
 	public User() {
 		this.userType = UserType.REPORTER;
@@ -92,6 +98,14 @@ public class User {
 			throw new IllegalArgumentException("Empty user type");
 		}
 		this.userType = userType;
+	}
+
+	public Department getDepartment() {
+		return department;
+	}
+
+	public void setDepartment(Department department) {
+		this.department = department;
 	}
 
 	// helper methods can be moved to a separate utility class if needed in future

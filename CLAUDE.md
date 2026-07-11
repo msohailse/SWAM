@@ -79,6 +79,14 @@
   `report/SWAM-Presentation.pptx` (+ PDF) built on the user-provided reference deck's own
   template/theme. Mermaid diagram sources + renders in `docs/diagrams/`, live UI
   screenshots (captured via headless Playwright, not mockups) in `docs/screenshots/`.
+- **Seed users — built and verified 2026-07-11.** `UserSeeder` (backend,
+  `application/service/`) creates a known ADMIN (`superadmin@swam.local`) and REPORTER
+  (`user@swam.local`) at startup if missing — registration only ever creates REPORTERs,
+  so this replaces the manual-SQL admin promotion. Credentials via `SEED_*` vars in
+  `deploy/.env` (+ `.env.example`, compose passthrough), defaults in
+  `application.properties`, disabled under `%test`. Verified live: both logins work
+  through the frontend proxy. Also rewrote the stale `backend/README.md` (still
+  described the pre-migration AST/Swing project).
 - **Everything not required by `ProjectIdea.md`/the professor's checklist has been
   deliberately dropped from remaining scope** (not silently forgotten) — see §7 Day 1-3
   for the specific items and why each was dropped: an ACID rollback test, an automated

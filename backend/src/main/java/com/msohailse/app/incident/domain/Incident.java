@@ -42,6 +42,12 @@ public class Incident {
 	@Column(nullable=false)
 	private boolean isClosed;
 
+	@Column(nullable=false)
+	private boolean isDuplicate = false;
+
+	@Column(nullable=true)
+	private Integer duplicatedIncidentId;
+
 	@ManyToOne
 	@JoinColumn(name="user_id", nullable=false)
 	private User reportedBy;
@@ -49,6 +55,10 @@ public class Incident {
 	@ManyToOne
 	@JoinColumn(name="tag_id", nullable=false)
 	private Tag tag;
+
+	@ManyToOne
+	@JoinColumn(name="assigned_department_id", nullable=true)
+	private Department assignedDepartment;
 
 	public Incident() {
 		this.reportedAt = new Date();
@@ -105,6 +115,22 @@ public class Incident {
 		this.isClosed = isClosed;
 	}
 
+	public boolean isDuplicate() {
+		return isDuplicate;
+	}
+
+	public void setIsDuplicate(boolean isDuplicate) {
+		this.isDuplicate = isDuplicate;
+	}
+
+	public Integer getDuplicatedIncidentId() {
+		return duplicatedIncidentId;
+	}
+
+	public void setDuplicatedIncidentId(Integer duplicatedIncidentId) {
+		this.duplicatedIncidentId = duplicatedIncidentId;
+	}
+
 	public User getReportedBy() {
 		return reportedBy;
 	}
@@ -125,6 +151,14 @@ public class Incident {
 			throw new IllegalArgumentException("Tag cannot be null");
 		}
 		this.tag = tag;
+	}
+
+	public Department getAssignedDepartment() {
+		return assignedDepartment;
+	}
+
+	public void setAssignedDepartment(Department assignedDepartment) {
+		this.assignedDepartment = assignedDepartment;
 	}
 
 	@Override

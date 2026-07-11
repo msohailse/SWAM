@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.msohailse.app.incident.application.port.out.CommentRepositoryPort;
 import com.msohailse.app.incident.application.port.out.IncidentEventPublisherPort;
 import com.msohailse.app.incident.application.port.out.IncidentRepositoryPort;
+import com.msohailse.app.incident.application.port.out.DepartmentRepositoryPort;
 import com.msohailse.app.incident.application.port.out.TagRepositoryPort;
 import com.msohailse.app.incident.application.port.out.UserRepositoryPort;
 import com.msohailse.app.incident.domain.Comment;
@@ -52,6 +53,9 @@ public class IncidentServiceTest {
 	private CommentRepositoryPort commentRepository;
 
 	@Mock
+	private DepartmentRepositoryPort departmentRepository;
+
+	@Mock
 	private IncidentEventPublisherPort eventPublisher;
 
 	private AutoCloseable closeable;
@@ -79,7 +83,7 @@ public class IncidentServiceTest {
 		existingTag.setTagTitle(TAG_TITLE);
 		when(tagRepository.findByTitle(TAG_TITLE)).thenReturn(existingTag);
 
-		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID);
+		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID, null);
 
 		verify(tagRepository).findByTitle(TAG_TITLE);
 		verify(tagRepository, never()).save(any(Tag.class));
@@ -89,7 +93,7 @@ public class IncidentServiceTest {
 	void createWhenTagNotFoundCreatesAndSavesTagBeforeIncident() {
 		when(tagRepository.findByTitle(TAG_TITLE)).thenReturn(null);
 
-		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID);
+		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID, null);
 
 		InOrder inOrder = inOrder(tagRepository, incidentRepository);
 		inOrder.verify(tagRepository).findByTitle(TAG_TITLE);
@@ -103,7 +107,7 @@ public class IncidentServiceTest {
 		existingTag.setTagTitle(TAG_TITLE);
 		when(tagRepository.findByTitle(TAG_TITLE)).thenReturn(existingTag);
 
-		Incident created = incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID);
+		Incident created = incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID, null);
 
 		ArgumentCaptor<Incident> captor = ArgumentCaptor.forClass(Incident.class);
 		verify(incidentRepository).save(captor.capture());
@@ -121,7 +125,7 @@ public class IncidentServiceTest {
 	void createWhenUserNotFoundThrows() {
 		when(userRepository.findById(999)).thenReturn(null);
 
-		assertThatThrownBy(() -> incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, 999))
+		assertThatThrownBy(() -> incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, 999, null))
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 
@@ -135,7 +139,7 @@ public class IncidentServiceTest {
 		existing.setTag(new Tag());
 		when(incidentRepository.findById(5)).thenReturn(existing);
 
-		Incident updated = incidentService.update(5, "New title", "New description", Severity.HIGH);
+		Incident updated = incidentService.update(5, "New title", "New description", Severity.HIGH, null);
 
 		assertThat(updated.getTitle()).isEqualTo("New title");
 		assertThat(updated.getDescription()).isEqualTo("New description");
@@ -147,7 +151,7 @@ public class IncidentServiceTest {
 	void updateWhenIncidentNotFoundThrows() {
 		when(incidentRepository.findById(404)).thenReturn(null);
 
-		assertThatThrownBy(() -> incidentService.update(404, TITLE, DESCRIPTION, SEVERITY))
+		assertThatThrownBy(() -> incidentService.update(404, TITLE, DESCRIPTION, SEVERITY, null))
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 

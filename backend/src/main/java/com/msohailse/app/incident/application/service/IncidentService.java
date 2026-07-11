@@ -6,11 +6,13 @@ import com.msohailse.app.incident.application.port.out.IncidentRepositoryPort;
 import com.msohailse.app.incident.application.port.out.TagRepositoryPort;
 import com.msohailse.app.incident.application.port.out.UserRepositoryPort;
 import com.msohailse.app.incident.domain.Comment;
+import com.msohailse.app.incident.domain.Department;
 import com.msohailse.app.incident.domain.Incident;
 import com.msohailse.app.incident.domain.Severity;
 import com.msohailse.app.incident.domain.Tag;
 import com.msohailse.app.incident.domain.User;
 import com.msohailse.app.incident.domain.UserType;
+import com.msohailse.app.incident.application.port.out.DepartmentRepositoryPort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -32,10 +34,13 @@ public class IncidentService {
 	CommentRepositoryPort commentRepository;
 
 	@Inject
+	DepartmentRepositoryPort departmentRepository;
+
+	@Inject
 	IncidentEventPublisherPort eventPublisher;
 
 	@Transactional
-	public Incident create(String title, String description, Severity severity, String tagTitle, int reportedByUserId) {
+	public Incident create(String title, String description, Severity severity, String tagTitle, int reportedByUserId, Integer assignedDepartmentId) {
 		User reportedBy = userRepository.findById(reportedByUserId);
 		if (reportedBy == null) {
 			throw new IllegalArgumentException("User not found: " + reportedByUserId);
@@ -52,6 +57,13 @@ public class IncidentService {
 		incident.setSeverity(severity);
 		incident.setReportedBy(reportedBy);
 		incident.setTag(tag);
+		if (assignedDepartmentId != null) {
+			Department dept = departmentRepository.findById(assignedDepartmentId);
+			if (dept == null) {
+				throw new IllegalArgumentException("Department not found: " + assignedDepartmentId);
+			}
+			incident.setAssignedDepartment(dept);
+		}
 		incidentRepository.save(incident);
 
 		// Fire-and-forget: the Analyzer service picks this up asynchronously to check for
@@ -103,7 +115,7 @@ public class IncidentService {
 	}
 
 	@Transactional
-	public Incident update(int id, String title, String description, Severity severity) {
+	public Incident update(int id, String title, String description, Severity severity, Integer assignedDepartmentId) {
 		Incident incident = incidentRepository.findById(id);
 		if (incident == null) {
 			throw new IllegalArgumentException("Incident not found: " + id);
@@ -111,6 +123,31 @@ public class IncidentService {
 		incident.setTitle(title);
 		incident.setDescription(description);
 		incident.setSeverity(severity);
+		if (assignedDepartmentId != null) {
+			Department dept = departmentRepository.findById(assignedDepartmentId);
+			if (dept == null) {
+				throw new IllegalArgumentException("Department not found: " + assignedDepartmentId);
+			}
+			incident.setAssignedDepartment(dept);
+		} else {
+			incident.setAssignedDepartment(null);
+		}
+		incidentRepository.update(incident);
+		return incident;
+	}
+
+	@Transactional
+	public Incident markDuplicate(int id, int duplicatedIncidentId) {
+		Incident incident = incidentRepository.findById(id);
+		if (incident == null) {
+			throw new IllegalArgumentException("Incident not found: " + id);
+		}
+		Incident duplicated = incidentRepository.findById(duplicatedIncidentId);
+		if (duplicated == null) {
+			throw new IllegalArgumentException("Duplicated incident not found: " + duplicatedIncidentId);
+		}
+		incident.setIsDuplicate(true);
+		incident.setDuplicatedIncidentId(duplicatedIncidentId);
 		incidentRepository.update(incident);
 		return incident;
 	}

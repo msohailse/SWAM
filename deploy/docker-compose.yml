@@ -41,6 +41,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      # Seeded logins (UserSeeder creates them at startup if missing)
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_USER_EMAIL: ${SEED_USER_EMAIL}
+      SEED_USER_PASSWORD: ${SEED_USER_PASSWORD}
     # No fixed host port mapping on purpose: a fixed "8080:8080" would make every
     # replica fight over the same host port, breaking `docker compose up --scale
     # backend=N`. The frontend's nginx reaches it over the internal docker network
