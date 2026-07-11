@@ -118,6 +118,27 @@ button {
   }
 }
 
+input,
+select,
+textarea {
+  font-family: system-ui, sans-serif;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text);
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  &::placeholder {
+    color: var(--dim);
+  }
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible {
@@ -165,26 +186,6 @@ form {
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--dim);
-  }
-
-  input,
-  select,
-  textarea {
-    font-family: system-ui, sans-serif;
-    background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 2px;
-    padding: 0.45rem 0.6rem;
-    font-size: 0.95rem;
-    color: var(--text);
-    text-transform: none;
-    letter-spacing: normal;
-    transition: border-color 0.15s ease;
-
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
   }
 
   button {
