@@ -12,11 +12,11 @@ export class AuthService {
   constructor(private http: HttpClient) {}
 
   register(firstName: string, lastName: string, email: string, password: string): Observable<User> {
-    return this.http.post<User>('/users/register', { firstName, lastName, email, password });
+    return this.http.post<User>('/api/users/register', { firstName, lastName, email, password });
   }
 
   login(email: string, password: string): Observable<User> {
-    return this.http.post<User>('/users/login', { email, password }).pipe(
+    return this.http.post<User>('/api/users/login', { email, password }).pipe(
       tap((user) => {
         this.currentUser.set(user);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(user));

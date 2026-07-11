@@ -8,18 +8,18 @@ export class TagService {
   constructor(private http: HttpClient) {}
 
   findAll(): Observable<Tag[]> {
-    return this.http.get<Tag[]>('/tags');
+    return this.http.get<Tag[]>('/api/tags');
   }
 
   create(tagTitle: string, tagDescription: string): Observable<Tag> {
-    return this.http.post<Tag>('/tags', { tagTitle, tagDescription });
+    return this.http.post<Tag>('/api/tags', { tagTitle, tagDescription });
   }
 
   update(id: number, tagTitle: string, tagDescription: string): Observable<Tag> {
-    return this.http.put<Tag>(`/tags/${id}`, { tagTitle, tagDescription });
+    return this.http.put<Tag>(`/api/tags/${id}`, { tagTitle, tagDescription });
   }
 
   delete(id: number): Observable<void> {
-    return this.http.delete<void>(`/tags/${id}`);
+    return this.http.delete<void>(`/api/tags/${id}`);
   }
 }
