@@ -10,7 +10,7 @@
       Description
       <input name="newDescription" [(ngModel)]="newDescription" />
     </label>
-    <button type="submit">Add tag</button>
+    <button type="submit" class="btn-primary">Add tag</button>
   </form>
 
   <table>
@@ -27,7 +27,7 @@
           <td><input [(ngModel)]="editTitle" name="editTitle" /></td>
           <td><input [(ngModel)]="editDescription" name="editDescription" /></td>
           <td>
-            <button (click)="saveEdit(tag.id)">Save</button>
+            <button (click)="saveEdit(tag.id)" class="btn-primary">Save</button>
             <button (click)="cancelEdit()">Cancel</button>
           </td>
         </ng-container>
@@ -36,7 +36,7 @@
           <td>{{ tag.tagDescription }}</td>
           <td>
             <button (click)="startEdit(tag)">Edit</button>
-            <button (click)="delete(tag.id)">Delete</button>
+            <button (click)="delete(tag.id)" class="btn-danger">Delete</button>
           </td>
         </ng-template>
       </tr>

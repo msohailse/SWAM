@@ -1,16 +1,15 @@
-<div class="page">
-  <h1>Log in</h1>
+<app-auth-console heading="Log in" subheading="Access the incident console">
   <form (ngSubmit)="submit()">
     <label>
-      Email
-      <input type="email" name="email" [(ngModel)]="email" required />
+      <span class="field-label">Email</span>
+      <input type="email" name="email" autocomplete="email" [(ngModel)]="email" required />
     </label>
     <label>
-      Password
-      <input type="password" name="password" [(ngModel)]="password" required />
+      <span class="field-label">Password</span>
+      <input type="password" name="password" autocomplete="current-password" [(ngModel)]="password" required />
     </label>
-    <button type="submit">Log in</button>
+    <button type="submit" [disabled]="submitting">{{ submitting ? 'Logging in…' : 'Log in →' }}</button>
   </form>
-  <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-  <p>No account? <a routerLink="/register">Register</a></p>
-</div>
+  <p class="auth-error" role="alert" *ngIf="errorMessage"><span class="dot sev-high"></span>{{ errorMessage }}</p>
+  <p class="switch">No account? <a routerLink="/register">Register</a></p>
+</app-auth-console>

@@ -1,24 +1,24 @@
-<div class="page">
-  <h1>Register</h1>
+<app-auth-console heading="Register" subheading="Create an incident console account">
   <form (ngSubmit)="submit()">
     <label>
-      First name
-      <input name="firstName" [(ngModel)]="firstName" required />
+      <span class="field-label">First name</span>
+      <input name="firstName" autocomplete="given-name" [(ngModel)]="firstName" required />
     </label>
     <label>
-      Last name
-      <input name="lastName" [(ngModel)]="lastName" required />
+      <span class="field-label">Last name</span>
+      <input name="lastName" autocomplete="family-name" [(ngModel)]="lastName" required />
     </label>
     <label>
-      Email
-      <input type="email" name="email" [(ngModel)]="email" required />
+      <span class="field-label">Email</span>
+      <input type="email" name="email" autocomplete="email" [(ngModel)]="email" required />
     </label>
     <label>
-      Password
-      <input type="password" name="password" [(ngModel)]="password" required />
+      <span class="field-label">Password</span>
+      <input type="password" name="password" autocomplete="new-password" minlength="8" [(ngModel)]="password" required />
+      <span class="field-hint">8+ characters, with an uppercase letter and a number</span>
     </label>
-    <button type="submit">Register</button>
+    <button type="submit" [disabled]="submitting">{{ submitting ? 'Registering…' : 'Register →' }}</button>
   </form>
-  <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-  <p>Already have an account? <a routerLink="/login">Log in</a></p>
-</div>
+  <p class="auth-error" role="alert" *ngIf="errorMessage"><span class="dot sev-high"></span>{{ errorMessage }}</p>
+  <p class="switch">Already have an account? <a routerLink="/login">Log in</a></p>
+</app-auth-console>

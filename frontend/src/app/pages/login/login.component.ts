@@ -3,25 +3,31 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { AuthConsoleComponent } from '../../shared/auth-console/auth-console.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AuthConsoleComponent],
   templateUrl: './login.component.html'
 })
 export class LoginComponent {
   email = '';
   password = '';
   errorMessage = '';
+  submitting = false;
 
   constructor(private auth: AuthService, private router: Router) {}
 
   submit(): void {
     this.errorMessage = '';
+    this.submitting = true;
     this.auth.login(this.email, this.password).subscribe({
       next: () => this.router.navigate(['/incidents']),
-      error: (err) => (this.errorMessage = err.error?.error ?? 'Login failed')
+      error: (err) => {
+        this.errorMessage = err.error?.error ?? 'Login failed';
+        this.submitting = false;
+      }
     });
   }
 }

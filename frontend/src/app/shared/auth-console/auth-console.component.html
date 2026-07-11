@@ -1,0 +1,37 @@
+<div class="console">
+  <div class="board" aria-hidden="true">
+    <div class="wordmark">SWAM<span class="cursor">_</span></div>
+    <div class="tagline">incident console</div>
+
+    <div class="ticker">
+      <div class="ticker-track">
+        <div [ngClass]="'line sev-' + line.severity.toLowerCase()" *ngFor="let line of logLines">
+          <span class="time">{{ line.time }}</span>
+          <span class="id">{{ line.id }}</span>
+          <span class="text">{{ line.text }}</span>
+          <span class="tag">{{ line.severity }}</span>
+        </div>
+        <div [ngClass]="'line sev-' + line.severity.toLowerCase()" *ngFor="let line of logLines">
+          <span class="time">{{ line.time }}</span>
+          <span class="id">{{ line.id }}</span>
+          <span class="text">{{ line.text }}</span>
+          <span class="tag">{{ line.severity }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot sev-low"></span>Low</span>
+      <span><span class="dot sev-medium"></span>Medium</span>
+      <span><span class="dot sev-high"></span>High</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-inner">
+      <h1>{{ heading }}</h1>
+      <p class="subheading" *ngIf="subheading">{{ subheading }}</p>
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>

@@ -23,7 +23,7 @@
       Tag
       <input name="newTagTitle" [(ngModel)]="newTagTitle" required />
     </label>
-    <button type="submit">Submit</button>
+    <button type="submit" class="btn-primary">Submit</button>
   </form>
 
   <table>
@@ -53,22 +53,22 @@
           </td>
           <td>{{ incident.tag.tagTitle }}</td>
           <td>{{ incident.reportedBy.firstName }} {{ incident.reportedBy.lastName }}</td>
-          <td>{{ incident.closed ? 'Closed' : 'Open' }}</td>
+          <td><span [ngClass]="incident.closed ? 'tag status-closed' : 'tag status-open'">{{ incident.closed ? 'Closed' : 'Open' }}</span></td>
           <td>
-            <button (click)="saveEdit(incident.id)">Save</button>
+            <button (click)="saveEdit(incident.id)" class="btn-primary">Save</button>
             <button (click)="cancelEdit()">Cancel</button>
           </td>
         </ng-container>
         <ng-template #readonlyRow>
           <td>{{ incident.title }}</td>
           <td>{{ incident.description }}</td>
-          <td>{{ incident.severity }}</td>
+          <td><span [ngClass]="'tag sev-' + incident.severity.toLowerCase()">{{ incident.severity }}</span></td>
           <td>{{ incident.tag.tagTitle }}</td>
           <td>{{ incident.reportedBy.firstName }} {{ incident.reportedBy.lastName }}</td>
-          <td>{{ incident.closed ? 'Closed' : 'Open' }}</td>
+          <td><span [ngClass]="incident.closed ? 'tag status-closed' : 'tag status-open'">{{ incident.closed ? 'Closed' : 'Open' }}</span></td>
           <td>
             <button (click)="startEdit(incident)">Edit</button>
-            <button (click)="delete(incident.id)">Delete</button>
+            <button (click)="delete(incident.id)" class="btn-danger">Delete</button>
             <button *ngIf="auth.isAdmin() && !incident.closed" (click)="close(incident)">Close</button>
             <button (click)="toggleThread(incident)">{{ openThreadId === incident.id ? 'Hide comments' : 'Comments' }}</button>
           </td>
@@ -84,7 +84,7 @@
             </p>
             <div class="reply-form">
               <input [(ngModel)]="replyText" name="replyText" placeholder="Write a reply..." />
-              <button (click)="reply(incident.id)">Reply</button>
+              <button (click)="reply(incident.id)" class="btn-primary">Reply</button>
             </div>
           </div>
         </td>
