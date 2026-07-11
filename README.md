@@ -1,6 +1,6 @@
 # SWAM — Scalable Event-Driven Incident Management System
 
-University exam project (SWAM course). REST API (Quarkus) + Angular UI for reporting and
+REST API (Quarkus) + Angular UI for reporting and
 tracking incidents, with an async Kafka-based duplicate-detection service on the side.
 See `CLAUDE.md` for the full architecture/decision log.
 
