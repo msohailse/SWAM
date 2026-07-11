@@ -1,8 +1,0 @@
-# All SWAM resources live in their own namespace so they never collide by name with
-# anything else already running on a shared minikube cluster (learned the hard way —
-# an earlier apply without a namespace overwrote an unrelated project's "frontend"
-# Deployment/Service that happened to share the same name).
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: swam

@@ -1,39 +1,62 @@
 <div class="modal-overlay">
   <div class="modal-content">
-    <h2>{{ incident.title }}</h2>
-    <p><strong>Description:</strong> {{ incident.description }}</p>
-    <p><strong>Severity:</strong> <span [ngClass]="'tag sev-' + incident.severity.toLowerCase()">{{ incident.severity }}</span></p>
-    <p><strong>Tag:</strong> {{ incident.tag.tagTitle }}</p>
-    <p><strong>Status:</strong> <span [ngClass]="incident.closed ? 'tag status-closed' : 'tag status-open'">{{ incident.closed ? 'Closed' : 'Open' }}</span></p>
-    <p><strong>Department:</strong> {{ incident.assignedDepartment ? incident.assignedDepartment.name : 'None' }}</p>
+    <div class="modal-header">
+      <h2>{{ incident.title }}</h2>
+      <span [ngClass]="incident.closed ? 'tag status-closed' : 'tag status-open'">{{ incident.closed ? 'Closed' : 'Open' }}</span>
+    </div>
 
-    <div class="thread" style="margin-top: 20px;">
-      <h3>Comments</h3>
-      <p *ngIf="comments.length === 0">No comments yet.</p>
-      <div *ngFor="let comment of comments" style="margin-bottom: 10px;">
-        <strong>{{ comment.author.firstName }} ({{ comment.author.userType }}):</strong>
-        {{ comment.text }}
+    <div class="modal-metadata">
+      <div class="meta-item">
+        <span class="meta-label">Severity</span>
+        <span [ngClass]="'tag sev-' + incident.severity.toLowerCase()">{{ incident.severity }}</span>
       </div>
-      <div class="reply-form" style="margin-top: 10px;">
-        <input [(ngModel)]="replyText" name="replyText" placeholder="Write a reply..." style="flex: 1;" />
-        <button (click)="reply()" class="btn-primary" style="margin-left: 10px;">Reply</button>
+      <div class="meta-item">
+        <span class="meta-label">Tag</span>
+        <span class="meta-value">{{ incident.tag.tagTitle }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Department</span>
+        <span class="meta-value">{{ incident.assignedDepartment ? incident.assignedDepartment.name : 'None' }}</span>
       </div>
     </div>
 
-    <div class="admin-actions" *ngIf="auth.isAdmin() && !incident.closed" style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee;">
+    <div class="modal-description">
+      <p>{{ incident.description }}</p>
+    </div>
+
+    <div class="thread">
+      <h3>Comments ({{ comments.length }})</h3>
+      <div class="comments-list">
+        <p *ngIf="comments.length === 0" class="no-comments">No comments yet. Start the conversation!</p>
+        <div *ngFor="let comment of comments" class="comment-box">
+          <div class="comment-header">
+            <strong>{{ comment.author.firstName }} ({{ comment.author.userType }})</strong>
+          </div>
+          <div class="comment-body">{{ comment.text }}</div>
+        </div>
+      </div>
+      <div class="reply-form">
+        <input [(ngModel)]="replyText" name="replyText" placeholder="Write a reply..." (keydown.enter)="reply()" />
+        <button (click)="reply()" class="btn-primary" [disabled]="!replyText">Reply</button>
+      </div>
+    </div>
+
+    <div class="admin-actions" *ngIf="auth.isAdmin() && !incident.closed">
       <h3>Admin Actions</h3>
-      <label style="display: inline-block; margin-right: 10px;">
-        Assign Department:
-        <select name="closeAssignedDepartmentId" [(ngModel)]="closeAssignedDepartmentId" style="margin-left: 10px;">
-          <option [ngValue]="null">-- Select Department --</option>
-          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
-        </select>
-      </label>
-      <button (click)="closeIncident()" class="btn-primary">Close Incident</button>
+      <div class="admin-controls">
+        <label>
+          Assign Department:
+          <select name="closeAssignedDepartmentId" [(ngModel)]="closeAssignedDepartmentId">
+            <option [ngValue]="null">-- Select Department --</option>
+            <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+          </select>
+        </label>
+        <button (click)="closeIncident()" class="btn-primary">Close Incident</button>
+      </div>
     </div>
 
-    <div style="margin-top: 20px; text-align: right;">
-      <button (click)="closeModal()" class="btn-secondary">Close Dialog</button>
+    <div class="modal-footer">
+      <button (click)="closeModal()" class="btn-secondary">Close Window</button>
     </div>
   </div>
 </div>

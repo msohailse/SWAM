@@ -10,4 +10,8 @@ export class DepartmentService {
   findAll(): Observable<Department[]> {
     return this.http.get<Department[]>('/api/departments');
   }
+
+  create(name: string, description: string): Observable<Department> {
+    return this.http.post<Department>('/api/departments', { name, description });
+  }
 }

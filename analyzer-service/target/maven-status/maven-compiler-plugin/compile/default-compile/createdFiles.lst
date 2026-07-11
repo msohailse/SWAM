@@ -1,0 +1,5 @@
+com/msohailse/app/analyzer/adapters/out/rest/BackendApiClient.class
+com/msohailse/app/analyzer/adapters/in/messaging/IncidentCreatedConsumer.class
+com/msohailse/app/analyzer/domain/Incident.class
+com/msohailse/app/analyzer/adapters/out/rest/BackendApiClient$MarkDuplicateRequest.class
+com/msohailse/app/analyzer/application/DuplicateDetector.class

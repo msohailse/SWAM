@@ -2,6 +2,7 @@
   <span class="brand">SWAM<span class="brand-tag">Incident Console</span></span>
   <a routerLink="/incidents">Incidents</a>
   <a *ngIf="auth.isAdmin()" routerLink="/tags">Tags</a>
+  <a *ngIf="auth.isAdmin()" routerLink="/departments">Departments</a>
   <span class="spacer"></span>
   <span class="whoami">{{ user.firstName }} ({{ user.userType }})</span>
   <button (click)="logout()">Log out</button>
