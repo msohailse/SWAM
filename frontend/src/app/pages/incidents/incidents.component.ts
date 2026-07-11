@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { IncidentService } from '../../services/incident.service';
-import { Comment, Incident, Severity } from '../../models/models';
+import { TagService } from '../../services/tag.service';
+import { Comment, Incident, Severity, Tag } from '../../models/models';
 
 @Component({
   selector: 'app-incidents',
@@ -13,6 +14,7 @@ import { Comment, Incident, Severity } from '../../models/models';
 })
 export class IncidentsComponent implements OnInit {
   incidents: Incident[] = [];
+  tags: Tag[] = [];
   editingId: number | null = null;
 
   newTitle = '';
@@ -29,10 +31,11 @@ export class IncidentsComponent implements OnInit {
   comments: Comment[] = [];
   replyText = '';
 
-  constructor(public auth: AuthService, private incidentService: IncidentService) {}
+  constructor(public auth: AuthService, private incidentService: IncidentService, private tagService: TagService) {}
 
   ngOnInit(): void {
     this.reload();
+    this.tagService.findAll().subscribe((tags) => (this.tags = tags));
   }
 
   reload(): void {
@@ -57,6 +60,7 @@ export class IncidentsComponent implements OnInit {
         this.newSeverity = 'LOW';
         this.newTagTitle = '';
         this.reload();
+        this.tagService.findAll().subscribe((tags) => (this.tags = tags));
       });
   }
 

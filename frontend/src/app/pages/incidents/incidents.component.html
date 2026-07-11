@@ -21,7 +21,10 @@
     </label>
     <label>
       Tag
-      <input name="newTagTitle" [(ngModel)]="newTagTitle" required />
+      <input name="newTagTitle" [(ngModel)]="newTagTitle" list="tag-options" placeholder="Pick an existing tag or type a new one" required />
+      <datalist id="tag-options">
+        <option *ngFor="let tag of tags" [value]="tag.tagTitle"></option>
+      </datalist>
     </label>
     <button type="submit" class="btn-primary">Submit</button>
   </form>
