@@ -29,6 +29,7 @@ export class IncidentsComponent implements OnInit {
   editTitle = '';
   editDescription = '';
   editSeverity: Severity = 'LOW';
+  editAssignedDepartmentId: number | null = null;
 
   // Modal state
   viewingIncident: Incident | null = null;
@@ -77,6 +78,7 @@ export class IncidentsComponent implements OnInit {
     this.editTitle = incident.title;
     this.editDescription = incident.description ?? '';
     this.editSeverity = incident.severity;
+    this.editAssignedDepartmentId = incident.assignedDepartment?.id || null;
   }
 
   cancelEdit(): void {
@@ -84,7 +86,7 @@ export class IncidentsComponent implements OnInit {
   }
 
   saveEdit(id: number): void {
-    this.incidentService.update(id, this.editTitle, this.editDescription, this.editSeverity).subscribe(() => {
+    this.incidentService.update(id, this.editTitle, this.editDescription, this.editSeverity, this.editAssignedDepartmentId).subscribe(() => {
       this.editingId = null;
       this.reload();
     });

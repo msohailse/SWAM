@@ -19,8 +19,8 @@ export class IncidentService {
     return this.http.post<Incident>('/api/incidents', { title, description, severity, tagTitle, reportedByUserId, assignedDepartmentId });
   }
 
-  update(id: number, title: string, description: string, severity: Severity): Observable<Incident> {
-    return this.http.put<Incident>(`/api/incidents/${id}`, { title, description, severity });
+  update(id: number, title: string, description: string, severity: Severity, assignedDepartmentId?: number | null): Observable<Incident> {
+    return this.http.put<Incident>(`/api/incidents/${id}`, { title, description, severity, assignedDepartmentId });
   }
 
   close(id: number, actingUserId: number, commentText: string, assignedDepartmentId?: number): Observable<Incident> {
