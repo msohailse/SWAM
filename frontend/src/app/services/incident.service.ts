@@ -15,16 +15,16 @@ export class IncidentService {
     return this.http.get<Incident[]>(`/api/incidents/user/${userId}`);
   }
 
-  create(title: string, description: string, severity: Severity, tagTitle: string, reportedByUserId: number): Observable<Incident> {
-    return this.http.post<Incident>('/api/incidents', { title, description, severity, tagTitle, reportedByUserId });
+  create(title: string, description: string, severity: Severity, tagTitle: string, reportedByUserId: number, assignedDepartmentId?: number): Observable<Incident> {
+    return this.http.post<Incident>('/api/incidents', { title, description, severity, tagTitle, reportedByUserId, assignedDepartmentId });
   }
 
   update(id: number, title: string, description: string, severity: Severity): Observable<Incident> {
     return this.http.put<Incident>(`/api/incidents/${id}`, { title, description, severity });
   }
 
-  close(id: number, actingUserId: number, commentText: string): Observable<Incident> {
-    return this.http.patch<Incident>(`/api/incidents/${id}/close`, { actingUserId, commentText });
+  close(id: number, actingUserId: number, commentText: string, assignedDepartmentId?: number): Observable<Incident> {
+    return this.http.patch<Incident>(`/api/incidents/${id}/close`, { actingUserId, commentText, assignedDepartmentId });
   }
 
   findComments(id: number): Observable<Comment[]> {

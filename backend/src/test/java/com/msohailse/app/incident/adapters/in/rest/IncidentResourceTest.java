@@ -57,6 +57,13 @@ public class IncidentResourceTest {
 
 	@Test
 	void createFindUpdateCloseDeleteIncident() {
+		int deptId = given()
+				.contentType("application/json")
+				.body("{\"name\":\"Support-" + System.nanoTime() + "\"}")
+				.when().post("/departments")
+				.then().statusCode(200)
+				.extract().path("id");
+
 		int id = given()
 				.contentType("application/json")
 				.body(createIncidentBody())
@@ -80,7 +87,7 @@ public class IncidentResourceTest {
 
 		given()
 				.contentType("application/json")
-				.body("{\"actingUserId\":" + adminId + ",\"commentText\":\"Resolved, fixed the wiring\"}")
+				.body("{\"actingUserId\":" + adminId + ",\"commentText\":\"Resolved, fixed the wiring\",\"assignedDepartmentId\":" + deptId + "}")
 				.when().patch("/incidents/" + id + "/close")
 				.then().statusCode(200)
 				.body("closed", equalTo(true)); // Jackson maps isClosed() -> "closed", not "isClosed"

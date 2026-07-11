@@ -26,6 +26,13 @@
         <option *ngFor="let tag of tags" [value]="tag.tagTitle"></option>
       </datalist>
     </label>
+    <label>
+      Department (Optional)
+      <select name="newAssignedDepartmentId" [(ngModel)]="newAssignedDepartmentId">
+        <option [ngValue]="null">-- None --</option>
+        <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+      </select>
+    </label>
     <button type="submit" class="btn-primary">Submit</button>
   </form>
 
@@ -72,27 +79,20 @@
           <td>
             <button (click)="startEdit(incident)">Edit</button>
             <button (click)="delete(incident.id)" class="btn-danger">Delete</button>
-            <button *ngIf="auth.isAdmin() && !incident.closed" (click)="close(incident)">Close</button>
-            <button (click)="toggleThread(incident)">{{ openThreadId === incident.id ? 'Hide comments' : 'Comments' }}</button>
+            <button (click)="viewIncident(incident)" class="btn-primary">Open Issue</button>
           </td>
         </ng-template>
-      </tr>
-      <tr *ngIf="openThreadId === incident.id" class="thread-row">
-        <td colspan="7">
-          <div class="thread">
-            <p *ngIf="comments.length === 0">No comments yet.</p>
-            <p *ngFor="let comment of comments">
-              <strong>{{ comment.author.firstName }} ({{ comment.author.userType }}):</strong>
-              {{ comment.text }}
-            </p>
-            <div class="reply-form">
-              <input [(ngModel)]="replyText" name="replyText" placeholder="Write a reply..." />
-              <button (click)="reply(incident.id)" class="btn-primary">Reply</button>
-            </div>
-          </div>
-        </td>
       </tr>
       </ng-container>
     </tbody>
   </table>
+
+  <!-- View Modal -->
+  <app-incident-modal 
+    *ngIf="viewingIncident" 
+    [incident]="viewingIncident" 
+    [departments]="departments" 
+    (close)="viewingIncident = null" 
+    (incidentUpdated)="reload()">
+  </app-incident-modal>
 </div>

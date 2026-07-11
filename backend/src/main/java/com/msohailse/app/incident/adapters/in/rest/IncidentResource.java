@@ -19,7 +19,7 @@ public class IncidentResource {
 
 	public record CreateIncidentRequest(String title, String description, Severity severity, String tagTitle, int reportedByUserId, Integer assignedDepartmentId) {}
 	public record UpdateIncidentRequest(String title, String description, Severity severity, Integer assignedDepartmentId) {}
-	public record CloseIncidentRequest(int actingUserId, String commentText) {}
+	public record CloseIncidentRequest(int actingUserId, String commentText, Integer assignedDepartmentId) {}
 	public record AddCommentRequest(int authorUserId, String text) {}
 	public record MarkDuplicateRequest(int duplicatedIncidentId) {}
 
@@ -61,7 +61,7 @@ public class IncidentResource {
 	@PATCH
 	@Path("/{id}/close")
 	public Incident close(@PathParam("id") int id, CloseIncidentRequest request) {
-		return incidentService.close(id, request.actingUserId(), request.commentText());
+		return incidentService.close(id, request.actingUserId(), request.commentText(), request.assignedDepartmentId());
 	}
 
 	@PATCH

@@ -4,38 +4,44 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { IncidentService } from '../../services/incident.service';
 import { TagService } from '../../services/tag.service';
-import { Comment, Incident, Severity, Tag } from '../../models/models';
+import { DepartmentService } from '../../services/department.service';
+import { Comment, Incident, Severity, Tag, Department } from '../../models/models';
+import { IncidentModalComponent } from './incident-modal.component';
 
 @Component({
   selector: 'app-incidents',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IncidentModalComponent],
   templateUrl: './incidents.component.html'
 })
 export class IncidentsComponent implements OnInit {
   incidents: Incident[] = [];
   tags: Tag[] = [];
+  departments: Department[] = [];
   editingId: number | null = null;
 
   newTitle = '';
   newDescription = '';
   newSeverity: Severity = 'LOW';
   newTagTitle = '';
+  newAssignedDepartmentId: number | null = null;
 
   editTitle = '';
   editDescription = '';
   editSeverity: Severity = 'LOW';
 
-  // Comment thread: which incident's thread is expanded, its comments, and the reply draft.
-  openThreadId: number | null = null;
-  comments: Comment[] = [];
-  replyText = '';
+  // Modal state
+  viewingIncident: Incident | null = null;
 
-  constructor(public auth: AuthService, private incidentService: IncidentService, private tagService: TagService) {}
+  constructor(
+    public auth: AuthService,
+    private incidentService: IncidentService,
+    private tagService: TagService,
+    private departmentService: DepartmentService
+  ) {}
 
   ngOnInit(): void {
     this.reload();
-    this.tagService.findAll().subscribe((tags) => (this.tags = tags));
   }
 
   reload(): void {
@@ -45,6 +51,8 @@ export class IncidentsComponent implements OnInit {
     }
     const source = this.auth.isAdmin() ? this.incidentService.findAll() : this.incidentService.findByUser(user.id);
     source.subscribe((incidents) => (this.incidents = incidents));
+    this.tagService.findAll().subscribe((tags) => (this.tags = tags));
+    this.departmentService.findAll().subscribe((deps) => (this.departments = deps));
   }
 
   create(): void {
@@ -53,14 +61,14 @@ export class IncidentsComponent implements OnInit {
       return;
     }
     this.incidentService
-      .create(this.newTitle, this.newDescription, this.newSeverity, this.newTagTitle, user.id)
+      .create(this.newTitle, this.newDescription, this.newSeverity, this.newTagTitle, user.id, this.newAssignedDepartmentId || undefined)
       .subscribe(() => {
         this.newTitle = '';
         this.newDescription = '';
         this.newSeverity = 'LOW';
         this.newTagTitle = '';
+        this.newAssignedDepartmentId = null;
         this.reload();
-        this.tagService.findAll().subscribe((tags) => (this.tags = tags));
       });
   }
 
@@ -82,48 +90,11 @@ export class IncidentsComponent implements OnInit {
     });
   }
 
-  close(incident: Incident): void {
-    const user = this.auth.currentUser();
-    if (!user) {
-      return;
-    }
-    const commentText = window.prompt('Closing comment:');
-    if (!commentText) {
-      return;
-    }
-    this.incidentService.close(incident.id, user.id, commentText).subscribe(() => {
-      this.reload();
-      this.openThread(incident);
-    });
-  }
-
   delete(id: number): void {
     this.incidentService.delete(id).subscribe(() => this.reload());
   }
 
-  toggleThread(incident: Incident): void {
-    if (this.openThreadId === incident.id) {
-      this.openThreadId = null;
-      this.comments = [];
-      return;
-    }
-    this.openThread(incident);
-  }
-
-  private openThread(incident: Incident): void {
-    this.openThreadId = incident.id;
-    this.replyText = '';
-    this.incidentService.findComments(incident.id).subscribe((comments) => (this.comments = comments));
-  }
-
-  reply(incidentId: number): void {
-    const user = this.auth.currentUser();
-    if (!user || !this.replyText.trim()) {
-      return;
-    }
-    this.incidentService.addComment(incidentId, user.id, this.replyText).subscribe((comment) => {
-      this.comments = [...this.comments, comment];
-      this.replyText = '';
-    });
+  viewIncident(incident: Incident): void {
+    this.viewingIncident = incident;
   }
 }

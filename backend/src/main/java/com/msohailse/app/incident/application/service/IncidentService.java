@@ -153,7 +153,7 @@ public class IncidentService {
 	}
 
 	@Transactional
-	public Incident close(int id, int actingUserId, String commentText) {
+	public Incident close(int id, int actingUserId, String commentText, Integer assignedDepartmentId) {
 		User actingUser = userRepository.findById(actingUserId);
 		if (actingUser == null || actingUser.getUserType() != UserType.ADMIN) {
 			throw new IllegalArgumentException("Only an admin can close an incident");
@@ -162,6 +162,19 @@ public class IncidentService {
 		if (incident == null) {
 			throw new IllegalArgumentException("Incident not found: " + id);
 		}
+
+		if (assignedDepartmentId != null) {
+			Department dept = departmentRepository.findById(assignedDepartmentId);
+			if (dept == null) {
+				throw new IllegalArgumentException("Department not found: " + assignedDepartmentId);
+			}
+			incident.setAssignedDepartment(dept);
+		}
+
+		if (incident.getAssignedDepartment() == null) {
+			throw new IllegalArgumentException("Cannot close an incident without an assigned department");
+		}
+
 		incident.setIsClosed(true);
 		incidentRepository.update(incident);
 

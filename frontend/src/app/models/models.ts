@@ -16,6 +16,12 @@ export interface Tag {
   tagDescription: string | null;
 }
 
+export interface Department {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
 export interface Incident {
   id: number;
   title: string;
@@ -24,6 +30,7 @@ export interface Incident {
   reportedAt: string;
   reportedBy: User;
   tag: Tag;
+  assignedDepartment?: Department;
   closed: boolean;
 }
 

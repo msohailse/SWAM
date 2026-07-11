@@ -171,9 +171,10 @@ public class IncidentServiceTest {
 		existing.setSeverity(SEVERITY);
 		existing.setReportedBy(reportedBy);
 		existing.setTag(new Tag());
+		existing.setAssignedDepartment(new com.msohailse.app.incident.domain.Department());
 		when(incidentRepository.findById(5)).thenReturn(existing);
 
-		Incident closed = incidentService.close(5, 2, "Resolved, fixed the wiring");
+		Incident closed = incidentService.close(5, 2, "Resolved, fixed the wiring", null);
 
 		assertThat(closed.isClosed()).isTrue();
 		verify(incidentRepository).update(existing);
@@ -189,11 +190,25 @@ public class IncidentServiceTest {
 	void closeByNonAdminThrows() {
 		when(userRepository.findById(USER_ID)).thenReturn(reportedBy); // REPORTER by default
 
-		assertThatThrownBy(() -> incidentService.close(5, USER_ID, "not allowed"))
+		assertThatThrownBy(() -> incidentService.close(5, USER_ID, "not allowed", null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("admin");
 		verify(incidentRepository, never()).update(any(Incident.class));
 		verify(commentRepository, never()).save(any(Comment.class));
+	}
+
+	@Test
+	void closeWithoutDepartmentThrows() {
+		User admin = new User();
+		admin.setUserType(UserType.ADMIN);
+		when(userRepository.findById(2)).thenReturn(admin);
+
+		Incident existing = new Incident();
+		when(incidentRepository.findById(5)).thenReturn(existing);
+
+		assertThatThrownBy(() -> incidentService.close(5, 2, "Closing", null))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("assigned department");
 	}
 
 	@Test
