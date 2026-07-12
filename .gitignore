@@ -15,3 +15,6 @@ frontend/.angular/
 
 # Moodle export — copyrighted course material, kept local-only, not for the repo
 course_content/
+
+# Report/presentation deliverables — kept local-only, not in the repo
+report/
