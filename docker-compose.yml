@@ -45,6 +45,8 @@ services:
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
       SEED_USER_EMAIL: ${SEED_USER_EMAIL}
       SEED_USER_PASSWORD: ${SEED_USER_PASSWORD}
+      SEED_DEPT_ADMIN_EMAIL: ${SEED_DEPT_ADMIN_EMAIL}
+      SEED_DEPT_ADMIN_PASSWORD: ${SEED_DEPT_ADMIN_PASSWORD}
     # No fixed host port mapping on purpose: a fixed "8080:8080" would make every
     # replica fight over the same host port, breaking `docker compose up --scale
     # backend=N`. The frontend's nginx reaches it over the internal docker network
