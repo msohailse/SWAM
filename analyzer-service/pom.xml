@@ -40,12 +40,6 @@
 			<artifactId>quarkus-jackson</artifactId>
 		</dependency>
 
-		<!-- REST Client -->
-		<dependency>
-			<groupId>io.quarkus</groupId>
-			<artifactId>quarkus-rest-client-jackson</artifactId>
-		</dependency>
-
 		<!-- JPA/Hibernate — reads/writes the same Postgres schema api-service owns -->
 		<dependency>
 			<groupId>io.quarkus</groupId>
@@ -77,6 +71,11 @@
 		<dependency>
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-junit5-mockito</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.smallrye.reactive</groupId>
+			<artifactId>smallrye-reactive-messaging-in-memory</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

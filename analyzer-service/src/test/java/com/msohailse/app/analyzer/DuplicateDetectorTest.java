@@ -1,17 +1,19 @@
 package com.msohailse.app.analyzer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msohailse.app.analyzer.application.DuplicateDetector;
-import com.msohailse.app.analyzer.adapters.out.rest.BackendApiClient;
-import com.msohailse.app.analyzer.adapters.out.rest.BackendApiClient.MarkDuplicateRequest;
+import com.msohailse.app.analyzer.application.DuplicateDetector.AnalysisCompletedEvent;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.InjectMock;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
+import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 public class DuplicateDetectorTest {
@@ -22,9 +24,12 @@ public class DuplicateDetectorTest {
     @Inject
     EntityManager em;
 
-    @InjectMock
-    @RestClient
-    BackendApiClient backendApiClient;
+    @Inject
+    ObjectMapper objectMapper;
+
+    @Inject
+    @Any
+    InMemoryConnector connector;
 
     @BeforeEach
     @Transactional
@@ -33,11 +38,12 @@ public class DuplicateDetectorTest {
         // table needed for testing pg_trgm locally.
         em.createNativeQuery("CREATE TABLE IF NOT EXISTS incidents (id INT PRIMARY KEY, title VARCHAR(200), description TEXT, isclosed BOOLEAN)").executeUpdate();
         em.createNativeQuery("DELETE FROM incidents").executeUpdate();
+        connector.sink("incident-analysis-completed").clear();
     }
 
     @Test
     @Transactional
-    public void testDuplicateDetection() {
+    public void testDuplicateDetection() throws Exception {
         // Setup existing incident in the database
         em.createNativeQuery("INSERT INTO incidents (id, title, description, isclosed) VALUES (1, 'The database server is completely down', 'We cannot connect to production DB', false)").executeUpdate();
 
@@ -47,7 +53,13 @@ public class DuplicateDetectorTest {
 
         duplicateDetector.checkForDuplicate(newIncidentId, "Production DB server is down", "Cannot connect to database");
 
-        // Verify the REST client was called to mark the new incident as a duplicate of the existing one
-        Mockito.verify(backendApiClient).markDuplicate(Mockito.eq(newIncidentId), Mockito.eq(new MarkDuplicateRequest(1)));
+        // Verify an AnalysisCompletedEvent was published to Kafka (in-memory connector in
+        // tests, see %test.mp.messaging.outgoing.incident-analysis-completed.connector) instead
+        // of the old direct REST call to backend.
+        InMemorySink<String> sink = connector.sink("incident-analysis-completed");
+        assertThat(sink.received()).hasSize(1);
+        AnalysisCompletedEvent event = objectMapper.readValue(sink.received().get(0).getPayload(), AnalysisCompletedEvent.class);
+        assertThat(event.incidentId()).isEqualTo(newIncidentId);
+        assertThat(event.duplicatedIncidentId()).isEqualTo(1);
     }
 }
