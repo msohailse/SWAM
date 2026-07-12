@@ -44,7 +44,7 @@ public class IncidentResourceTest {
 		admin.setLastName("User");
 		admin.setEmail("admin-" + System.nanoTime() + "@example.com");
 		admin.setPassword("SecurePass1");
-		admin.setUserType(UserType.ADMIN);
+		admin.setUserType(UserType.SUPER_ADMIN);
 		userRepository.save(admin);
 		adminId = admin.getId();
 		userTransaction.commit();

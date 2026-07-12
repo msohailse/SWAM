@@ -162,7 +162,7 @@ public class IncidentServiceTest {
 		admin.setLastName("User");
 		admin.setEmail("admin@example.com");
 		admin.setPassword("SecurePass1");
-		admin.setUserType(UserType.ADMIN);
+		admin.setUserType(UserType.SUPER_ADMIN);
 		when(userRepository.findById(2)).thenReturn(admin);
 
 		Incident existing = new Incident();
@@ -200,7 +200,7 @@ public class IncidentServiceTest {
 	@Test
 	void closeWithoutDepartmentThrows() {
 		User admin = new User();
-		admin.setUserType(UserType.ADMIN);
+		admin.setUserType(UserType.SUPER_ADMIN);
 		when(userRepository.findById(2)).thenReturn(admin);
 
 		Incident existing = new Incident();

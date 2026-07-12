@@ -11,6 +11,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import java.util.Date;
 
 @Entity
 @Table(name="users")
@@ -39,6 +42,12 @@ public class User {
 	@ManyToOne
 	@JoinColumn(name="department_id", nullable=true)
 	private Department department;
+
+	// Only ever meaningful for ADMIN — null means the grant doesn't expire. SUPER_ADMIN
+	// and REPORTER should always leave this null.
+	@Column(nullable=true)
+	@Temporal(TemporalType.TIMESTAMP)
+	private Date adminExpiresAt;
 
 	public User() {
 		this.userType = UserType.REPORTER;
@@ -106,6 +115,37 @@ public class User {
 
 	public void setDepartment(Department department) {
 		this.department = department;
+	}
+
+	public Date getAdminExpiresAt() {
+		return adminExpiresAt;
+	}
+
+	public void setAdminExpiresAt(Date adminExpiresAt) {
+		this.adminExpiresAt = adminExpiresAt;
+	}
+
+	// Domain helpers, not part of the JSON contract — @JsonIgnore because "active" is only
+	// true as of the moment this is called; a value serialized once at login time would go
+	// stale as soon as an expiry passes, which is exactly the bug this whole feature exists
+	// to avoid. Clients must recompute liveness themselves from adminExpiresAt (see
+	// AuthService.isAdmin() on the frontend), not trust a cached boolean.
+	@JsonIgnore
+	public boolean isSuperAdmin() {
+		return userType == UserType.SUPER_ADMIN;
+	}
+
+	// SUPER_ADMIN is always active. ADMIN is active unless its expiry has passed.
+	// REPORTER is never an active admin.
+	@JsonIgnore
+	public boolean isActiveAdmin() {
+		if (userType == UserType.SUPER_ADMIN) {
+			return true;
+		}
+		if (userType != UserType.ADMIN) {
+			return false;
+		}
+		return adminExpiresAt == null || adminExpiresAt.after(new Date());
 	}
 
 	// helper methods can be moved to a separate utility class if needed in future

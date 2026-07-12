@@ -29,14 +29,28 @@ export class AuthService {
     localStorage.removeItem(STORAGE_KEY);
   }
 
+  // True admin access *right now* — SUPER_ADMIN always qualifies; ADMIN only if its
+  // adminExpiresAt hasn't passed yet. This is what every admin-only nav link/guard/data
+  // source should check, so an expired grant loses access everywhere for free the moment
+  // it lapses, with no separate "is this still valid" check needed anywhere else.
   isAdmin(): boolean {
-    return this.currentUser()?.userType === 'ADMIN';
+    const user = this.currentUser();
+    if (!user) {
+      return false;
+    }
+    if (user.userType === 'SUPER_ADMIN') {
+      return true;
+    }
+    if (user.userType !== 'ADMIN') {
+      return false;
+    }
+    return !user.adminExpiresAt || new Date(user.adminExpiresAt) > new Date();
   }
 
-  // An ADMIN with no department sees/manages everything and is the only one who can
-  // assign/reassign a department; an ADMIN with a department is scoped to it.
+  // Sees/manages every incident and is the only type that can assign/reassign a
+  // department or create other users. Never expires.
   isSuperAdmin(): boolean {
-    return this.isAdmin() && !this.currentUser()?.department;
+    return this.currentUser()?.userType === 'SUPER_ADMIN';
   }
 }
 

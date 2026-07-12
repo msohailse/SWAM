@@ -102,8 +102,11 @@ public class IncidentService {
 	}
 
 	// null actingUserId -> no scoping (used by callers that aren't an admin viewing a
-	// list). A super admin (ADMIN with no department) also gets null -> no scoping. A
-	// department admin gets their own Department back, forcing the list down to it.
+	// list). A super admin gets null back -> no scoping, sees everything. An active
+	// (non-expired) department admin gets their own Department back, forcing the list
+	// down to it. Anyone else (a reporter, or an admin whose grant expired) is rejected
+	// outright — returning null for them would mean "no scoping", i.e. showing everything,
+	// which would be a privilege escalation rather than a safe fallback.
 	private Department resolveDepartmentScope(Integer actingUserId) {
 		if (actingUserId == null) {
 			return null;
@@ -112,11 +115,13 @@ public class IncidentService {
 		if (actingUser == null) {
 			throw new IllegalArgumentException("User not found: " + actingUserId);
 		}
-		return actingUser.getDepartment();
-	}
-
-	private boolean isSuperAdmin(User user) {
-		return user.getUserType() == UserType.ADMIN && user.getDepartment() == null;
+		if (actingUser.isSuperAdmin()) {
+			return null;
+		}
+		if (actingUser.getUserType() == UserType.ADMIN && actingUser.isActiveAdmin()) {
+			return actingUser.getDepartment();
+		}
+		throw new IllegalArgumentException("Not authorized to view the admin incident list");
 	}
 
 	// status is a query string, so it comes in as "open"/"closed", not a boolean —
@@ -150,7 +155,7 @@ public class IncidentService {
 		// not a change and never blocked.
 		Integer currentDepartmentId = incident.getAssignedDepartment() == null ? null : incident.getAssignedDepartment().getId();
 		boolean departmentChanging = !java.util.Objects.equals(currentDepartmentId, assignedDepartmentId);
-		if (departmentChanging && !isSuperAdmin(actingUser)) {
+		if (departmentChanging && !actingUser.isSuperAdmin()) {
 			throw new IllegalArgumentException("Only a super admin can assign a department");
 		}
 
@@ -218,7 +223,7 @@ public class IncidentService {
 	@Transactional
 	public Incident close(int id, int actingUserId, String commentText, Integer assignedDepartmentId) {
 		User actingUser = userRepository.findById(actingUserId);
-		if (actingUser == null || actingUser.getUserType() != UserType.ADMIN) {
+		if (actingUser == null || !actingUser.isActiveAdmin()) {
 			throw new IllegalArgumentException("Only an admin can close an incident");
 		}
 		Incident incident = incidentRepository.findById(id);
@@ -232,7 +237,7 @@ public class IncidentService {
 		Integer currentDepartmentId = incident.getAssignedDepartment() == null ? null : incident.getAssignedDepartment().getId();
 		boolean departmentChanging = assignedDepartmentId != null && !assignedDepartmentId.equals(currentDepartmentId);
 		if (departmentChanging) {
-			if (!isSuperAdmin(actingUser)) {
+			if (!actingUser.isSuperAdmin()) {
 				throw new IllegalArgumentException("Only a super admin can assign a department");
 			}
 			Department dept = departmentRepository.findById(assignedDepartmentId);
@@ -246,9 +251,9 @@ public class IncidentService {
 			throw new IllegalArgumentException("Cannot close an incident without an assigned department");
 		}
 
-		// A department admin (non-null department) may only close incidents already
-		// assigned to their own department — the super admin has no such restriction.
-		if (!isSuperAdmin(actingUser) && incident.getAssignedDepartment().getId() != actingUser.getDepartment().getId()) {
+		// A department admin (already confirmed active above) may only close incidents
+		// already assigned to their own department — the super admin has no such restriction.
+		if (!actingUser.isSuperAdmin() && incident.getAssignedDepartment().getId() != actingUser.getDepartment().getId()) {
 			throw new IllegalArgumentException("You can only close incidents assigned to your own department");
 		}
 

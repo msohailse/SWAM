@@ -3,6 +3,7 @@
   <a routerLink="/incidents">Incidents</a>
   <a *ngIf="auth.isAdmin()" routerLink="/tags">Tags</a>
   <a *ngIf="auth.isAdmin()" routerLink="/departments">Departments</a>
+  <a *ngIf="auth.isSuperAdmin()" routerLink="/users">Users</a>
   <span class="spacer"></span>
   <span class="whoami">{{ user.firstName }} ({{ user.userType }})</span>
   <button (click)="logout()">Log out</button>

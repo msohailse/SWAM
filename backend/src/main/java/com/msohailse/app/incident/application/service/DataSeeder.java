@@ -67,11 +67,12 @@ public class DataSeeder {
 		seedDepartment("Facilities", "Building and equipment maintenance");
 		seedDepartment("Human Resources", "Personnel and employee relations");
 
-		// department left null -> this is *the* super admin (sees/manages every incident,
-		// the only one who can assign/reassign a department).
-		seed("Super", "Admin", adminEmail, adminPassword, UserType.ADMIN, null);
+		// Sees/manages every incident and is the only type that can assign/reassign a
+		// department or create other users.
+		seed("Super", "Admin", adminEmail, adminPassword, UserType.SUPER_ADMIN, null);
 		// A department admin, for the scoped-permissions demo: only sees/closes incidents
-		// assigned to IT Support.
+		// assigned to IT Support. No expiry — a stable always-on demo account; time-boxed
+		// admins are created via the super admin's own user-creation screen at runtime.
 		seed("IT", "Admin", deptAdminEmail, deptAdminPassword, UserType.ADMIN, itSupport);
 		seed("Demo", "Reporter", userEmail, userPassword, UserType.REPORTER, null);
 	}

@@ -1,4 +1,4 @@
-export type UserType = 'REPORTER' | 'ADMIN';
+export type UserType = 'REPORTER' | 'ADMIN' | 'SUPER_ADMIN';
 
 export interface User {
   id: number;
@@ -7,6 +7,8 @@ export interface User {
   email: string;
   userType: UserType;
   department: Department | null;
+  // Only ever meaningful for ADMIN — null means the grant doesn't expire.
+  adminExpiresAt: string | null;
 }
 
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH';

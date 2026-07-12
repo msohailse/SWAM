@@ -13,6 +13,17 @@ export const adminGuard: CanActivateFn = () => {
   return false;
 };
 
+export const superAdminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  if (auth.isSuperAdmin()) {
+    return true;
+  }
+  router.navigate(['/incidents']);
+  return false;
+};
+
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);

@@ -1,0 +1,68 @@
+<div class="page">
+  <h1>Manage Users (Super Admin)</h1>
+
+  <form class="create-form" (ngSubmit)="create()">
+    <h2>Create a user</h2>
+    <label>
+      First name
+      <input name="newFirstName" [(ngModel)]="newFirstName" required />
+    </label>
+    <label>
+      Last name
+      <input name="newLastName" [(ngModel)]="newLastName" required />
+    </label>
+    <label>
+      Email
+      <input name="newEmail" type="email" [(ngModel)]="newEmail" required />
+    </label>
+    <label>
+      Password
+      <input name="newPassword" type="password" [(ngModel)]="newPassword" required />
+    </label>
+    <label>
+      Type
+      <select name="newUserType" [(ngModel)]="newUserType">
+        <option value="ADMIN">ADMIN</option>
+        <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+      </select>
+    </label>
+    <ng-container *ngIf="newUserType === 'ADMIN'">
+      <label>
+        Department
+        <select name="newDepartmentId" [(ngModel)]="newDepartmentId" required>
+          <option [ngValue]="null">-- Select department --</option>
+          <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+        </select>
+      </label>
+      <label>
+        Expires in (days)
+        <input name="newExpiresInDays" type="number" min="1" [(ngModel)]="newExpiresInDays" placeholder="Leave blank for no expiry" />
+      </label>
+    </ng-container>
+    <button type="submit" class="btn-primary">Create user</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Type</th>
+        <th>Department</th>
+        <th>Expires</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of users">
+        <td>{{ u.firstName }} {{ u.lastName }}</td>
+        <td>{{ u.email }}</td>
+        <td><span class="tag">{{ u.userType }}</span></td>
+        <td>{{ u.department?.name || 'None' }}</td>
+        <td>{{ u.adminExpiresAt ? (u.adminExpiresAt | date: 'mediumDate') : (u.userType === 'ADMIN' ? 'Never' : '—') }}</td>
+      </tr>
+      <tr *ngIf="users.length === 0">
+        <td colspan="5" style="text-align: center; color: var(--dim);">No users found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

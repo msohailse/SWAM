@@ -4,7 +4,8 @@ import { RegisterComponent } from './pages/register/register.component';
 import { IncidentsComponent } from './pages/incidents/incidents.component';
 import { TagsComponent } from './pages/tags/tags.component';
 import { DepartmentsComponent } from './pages/departments/departments.component';
-import { adminGuard, authGuard } from './guards/admin.guard';
+import { UsersComponent } from './pages/users/users.component';
+import { adminGuard, authGuard, superAdminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -12,6 +13,7 @@ export const routes: Routes = [
   { path: 'incidents', component: IncidentsComponent, canActivate: [authGuard] },
   { path: 'tags', component: TagsComponent, canActivate: [authGuard, adminGuard] },
   { path: 'departments', component: DepartmentsComponent, canActivate: [authGuard, adminGuard] },
+  { path: 'users', component: UsersComponent, canActivate: [authGuard, superAdminGuard] },
   { path: '', redirectTo: 'incidents', pathMatch: 'full' },
   { path: '**', redirectTo: 'incidents' }
 ];
