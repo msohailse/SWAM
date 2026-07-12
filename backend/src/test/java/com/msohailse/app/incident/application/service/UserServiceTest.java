@@ -161,12 +161,26 @@ public class UserServiceTest {
 	}
 
 	@Test
-	void createUserCannotCreateAnotherSuperAdmin() {
+	void createUserBySuperAdminCanCreateAnotherSuperAdmin() {
 		User superAdmin = new User();
 		superAdmin.setUserType(UserType.SUPER_ADMIN);
 		when(userRepository.findById(1)).thenReturn(superAdmin);
+		when(userRepository.findByEmail(EMAIL)).thenReturn(null);
 
-		assertThatThrownBy(() -> userService.createUser(1, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.SUPER_ADMIN, null, null))
+		userService.createUser(1, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.SUPER_ADMIN, null, null);
+
+		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+		verify(userRepository).save(captor.capture());
+		assertThat(captor.getValue().getUserType()).isEqualTo(UserType.SUPER_ADMIN);
+	}
+
+	@Test
+	void createUserByDepartmentAdminCannotCreateSuperAdmin() {
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		when(userRepository.findById(9)).thenReturn(deptAdmin);
+
+		assertThatThrownBy(() -> userService.createUser(9, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.SUPER_ADMIN, null, null))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("super admin");
 	}

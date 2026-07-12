@@ -24,6 +24,7 @@
       <select name="newUserType" [(ngModel)]="newUserType">
         <option value="REPORTER">REPORTER (normal user)</option>
         <option value="ADMIN">ADMIN</option>
+        <option *ngIf="auth.isSuperAdmin()" value="SUPER_ADMIN">SUPER_ADMIN</option>
       </select>
     </label>
     <ng-container *ngIf="newUserType === 'ADMIN'">

@@ -37,11 +37,8 @@ public class UserService {
 	}
 
 	// Public /register above only ever creates a REPORTER. This endpoint lets any active
-	// admin create a REPORTER or an ADMIN — it deliberately never mints another SUPER_ADMIN:
-	// that role only ever comes from startup seeding (see DataSeeder), because this whole
-	// check trusts a client-supplied actingUserId with no real session behind it, and
-	// SUPER_ADMIN is the one role that could otherwise be used to fully take over the system
-	// through it. A department admin (not super) can only ever create another admin within
+	// admin create a REPORTER or an ADMIN; only a SUPER_ADMIN may additionally create another
+	// SUPER_ADMIN. A department admin (not super) can only ever create another admin within
 	// their own department — departmentId is forced to their own, never trusted from the
 	// client, so the UI shouldn't even offer a choice for that case.
 	@Transactional
@@ -51,8 +48,8 @@ public class UserService {
 		if (actingUser == null || !actingUser.isActiveAdmin()) {
 			throw new IllegalArgumentException("Only an admin can create users");
 		}
-		if (userType == UserType.SUPER_ADMIN) {
-			throw new IllegalArgumentException("Cannot create another super admin through this endpoint");
+		if (userType == UserType.SUPER_ADMIN && !actingUser.isSuperAdmin()) {
+			throw new IllegalArgumentException("Only a super admin can create another super admin");
 		}
 		if (!actingUser.isSuperAdmin() && userType == UserType.ADMIN) {
 			Department actingDepartment = actingUser.getDepartment();
