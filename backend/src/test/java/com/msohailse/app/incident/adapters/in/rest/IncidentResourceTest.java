@@ -59,7 +59,7 @@ public class IncidentResourceTest {
 	void createFindUpdateCloseDeleteIncident() {
 		int deptId = given()
 				.contentType("application/json")
-				.body("{\"name\":\"Support-" + System.nanoTime() + "\"}")
+				.body("{\"actingUserId\":" + adminId + ",\"name\":\"Support-" + System.nanoTime() + "\"}")
 				.when().post("/departments")
 				.then().statusCode(200)
 				.extract().path("id");

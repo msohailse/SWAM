@@ -20,11 +20,11 @@ public class DepartmentResource {
 	@Inject
 	DepartmentService departmentService;
 
-	public record CreateDepartmentRequest(String name, String description) {}
+	public record CreateDepartmentRequest(int actingUserId, String name, String description) {}
 
 	@POST
 	public Department create(CreateDepartmentRequest request) {
-		return departmentService.create(request.name(), request.description());
+		return departmentService.create(request.actingUserId(), request.name(), request.description());
 	}
 
 	@GET

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DepartmentService } from '../../services/department.service';
+import { AuthService } from '../../services/auth.service';
 import { Department } from '../../models/models';
 
 @Component({
@@ -15,7 +16,7 @@ export class DepartmentsComponent implements OnInit {
   newName = '';
   newDescription = '';
 
-  constructor(private departmentService: DepartmentService) {}
+  constructor(private departmentService: DepartmentService, private auth: AuthService) {}
 
   ngOnInit(): void {
     this.reload();
@@ -29,7 +30,7 @@ export class DepartmentsComponent implements OnInit {
 
   create(): void {
     if (!this.newName.trim()) return;
-    this.departmentService.create(this.newName, this.newDescription).subscribe({
+    this.departmentService.create(this.auth.currentUser()!.id, this.newName, this.newDescription).subscribe({
       next: () => {
         this.newName = '';
         this.newDescription = '';

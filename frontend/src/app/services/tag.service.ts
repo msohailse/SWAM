@@ -11,15 +11,15 @@ export class TagService {
     return this.http.get<Tag[]>('/api/tags');
   }
 
-  create(tagTitle: string, tagDescription: string): Observable<Tag> {
-    return this.http.post<Tag>('/api/tags', { tagTitle, tagDescription });
+  create(actingUserId: number, tagTitle: string, tagDescription: string): Observable<Tag> {
+    return this.http.post<Tag>('/api/tags', { actingUserId, tagTitle, tagDescription });
   }
 
-  update(id: number, tagTitle: string, tagDescription: string): Observable<Tag> {
-    return this.http.put<Tag>(`/api/tags/${id}`, { tagTitle, tagDescription });
+  update(actingUserId: number, id: number, tagTitle: string, tagDescription: string): Observable<Tag> {
+    return this.http.put<Tag>(`/api/tags/${id}`, { actingUserId, tagTitle, tagDescription });
   }
 
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`/api/tags/${id}`);
+  delete(actingUserId: number, id: number): Observable<void> {
+    return this.http.delete<void>(`/api/tags/${id}?actingUserId=${actingUserId}`);
   }
 }

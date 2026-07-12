@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TagService } from '../../services/tag.service';
+import { AuthService } from '../../services/auth.service';
 import { Tag } from '../../models/models';
 
 @Component({
@@ -19,7 +20,7 @@ export class TagsComponent implements OnInit {
   editTitle = '';
   editDescription = '';
 
-  constructor(private tagService: TagService) {}
+  constructor(private tagService: TagService, private auth: AuthService) {}
 
   ngOnInit(): void {
     this.reload();
@@ -30,7 +31,7 @@ export class TagsComponent implements OnInit {
   }
 
   create(): void {
-    this.tagService.create(this.newTitle, this.newDescription).subscribe(() => {
+    this.tagService.create(this.auth.currentUser()!.id, this.newTitle, this.newDescription).subscribe(() => {
       this.newTitle = '';
       this.newDescription = '';
       this.reload();
@@ -48,13 +49,13 @@ export class TagsComponent implements OnInit {
   }
 
   saveEdit(id: number): void {
-    this.tagService.update(id, this.editTitle, this.editDescription).subscribe(() => {
+    this.tagService.update(this.auth.currentUser()!.id, id, this.editTitle, this.editDescription).subscribe(() => {
       this.editingId = null;
       this.reload();
     });
   }
 
   delete(id: number): void {
-    this.tagService.delete(id).subscribe(() => this.reload());
+    this.tagService.delete(this.auth.currentUser()!.id, id).subscribe(() => this.reload());
   }
 }

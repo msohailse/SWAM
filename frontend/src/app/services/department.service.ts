@@ -11,7 +11,7 @@ export class DepartmentService {
     return this.http.get<Department[]>('/api/departments');
   }
 
-  create(name: string, description: string): Observable<Department> {
-    return this.http.post<Department>('/api/departments', { name, description });
+  create(actingUserId: number, name: string, description: string): Observable<Department> {
+    return this.http.post<Department>('/api/departments', { actingUserId, name, description });
   }
 }

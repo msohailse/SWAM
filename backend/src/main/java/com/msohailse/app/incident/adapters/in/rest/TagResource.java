@@ -15,7 +15,7 @@ public class TagResource {
 	@Inject
 	TagService tagService;
 
-	public record TagRequest(String tagTitle, String tagDescription) {}
+	public record TagRequest(int actingUserId, String tagTitle, String tagDescription) {}
 
 	@GET
 	public List<Tag> findAll() {
@@ -30,18 +30,18 @@ public class TagResource {
 
 	@POST
 	public Tag create(TagRequest request) {
-		return tagService.create(request.tagTitle(), request.tagDescription());
+		return tagService.create(request.actingUserId(), request.tagTitle(), request.tagDescription());
 	}
 
 	@PUT
 	@Path("/{id}")
 	public Tag update(@PathParam("id") int id, TagRequest request) {
-		return tagService.update(id, request.tagTitle(), request.tagDescription());
+		return tagService.update(request.actingUserId(), id, request.tagTitle(), request.tagDescription());
 	}
 
 	@DELETE
 	@Path("/{id}")
-	public void delete(@PathParam("id") int id) {
-		tagService.delete(id);
+	public void delete(@PathParam("id") int id, @QueryParam("actingUserId") int actingUserId) {
+		tagService.delete(actingUserId, id);
 	}
 }
