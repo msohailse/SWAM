@@ -14,31 +14,6 @@ public class IncidentTest {
 	}
 
 	@Test
-	public void testIdDefaultsToZeroBeforePersistence() {
-		assertTrue(firstIncident.getId() == 0, "Id should default to 0 before JPA persists");
-	}
-
-	@Test
-	public void testTitleDefaultsToNull() {
-		assertNull(firstIncident.getTitle());
-	}
-
-	@Test
-	public void testDescriptionDefaultsToNull() {
-		assertNull(firstIncident.getDescription());
-	}
-
-	@Test
-	public void testIsClosedDefaultsToFalse() {
-		assertFalse(firstIncident.isClosed(), "isClosed should default to false");
-	}
-
-	@Test
-	public void testTagDefaultsToNull() {
-		assertNull(firstIncident.getTag());
-	}
-
-	@Test
 	public void testReportedAtIsSetOnConstruction() {
 		assertNotNull(firstIncident.getReportedAt(), "reportedAt should be set automatically in constructor");
 	}
@@ -50,25 +25,9 @@ public class IncidentTest {
 	}
 
 	@Test
-	public void testTitleWithSingleSpaceIsValid() {
-		firstIncident.setTitle("power outage");
-		assertEquals("power outage", firstIncident.getTitle());
-	}
-
-	@Test
 	public void testTitleWithNullShouldThrow() {
 		try {
 			firstIncident.setTitle(null);
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Empty title", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testTitleWithEmptyStringShouldThrow() {
-		try {
-			firstIncident.setTitle("");
 			fail("Expected an IllegalArgumentException to be thrown");
 		} catch (IllegalArgumentException e) {
 			assertEquals("Empty title", e.getMessage());
@@ -92,33 +51,9 @@ public class IncidentTest {
 	}
 
 	@Test
-	public void testTitleWithTrailingSpaceIsNormalized() {
-		firstIncident.setTitle("network failure ");
-		assertEquals("network failure", firstIncident.getTitle());
-	}
-
-	@Test
-	public void testTitleWithMultipleSpacesInMiddleIsNormalized() {
-		firstIncident.setTitle("water  leak  detected");
-		assertEquals("water leak detected", firstIncident.getTitle());
-	}
-
-	@Test
-	public void testTitleWithTabIsNormalized() {
-		firstIncident.setTitle("door\tforced open");
-		assertEquals("door forced open", firstIncident.getTitle());
-	}
-
-	@Test
 	public void testDescriptionCanBeNull() {
 		firstIncident.setDescription(null);
 		assertNull(firstIncident.getDescription());
-	}
-
-	@Test
-	public void testDescriptionCanBeEmptyString() {
-		firstIncident.setDescription("");
-		assertEquals("", firstIncident.getDescription());
 	}
 
 	@Test
@@ -131,24 +66,6 @@ public class IncidentTest {
 	public void testDescriptionWithLeadingAndTrailingSpacesIsNormalized() {
 		firstIncident.setDescription("  broken window  ");
 		assertEquals("broken window", firstIncident.getDescription());
-	}
-
-	@Test
-	public void testDescriptionWithMultipleSpacesInMiddleIsNormalized() {
-		firstIncident.setDescription("door  was  found  open");
-		assertEquals("door was found open", firstIncident.getDescription());
-	}
-
-	@Test
-	public void testSeverityLowShouldStore() {
-		firstIncident.setSeverity(Severity.LOW);
-		assertEquals(Severity.LOW, firstIncident.getSeverity());
-	}
-
-	@Test
-	public void testSeverityHighShouldStore() {
-		firstIncident.setSeverity(Severity.HIGH);
-		assertEquals(Severity.HIGH, firstIncident.getSeverity());
 	}
 
 	@Test

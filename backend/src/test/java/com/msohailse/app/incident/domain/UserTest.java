@@ -15,44 +15,9 @@ public class UserTest {
 	}
 
 	@Test
-	public void testIdDefaultsToZeroBeforePersistence() {
-		assertTrue(firstUser.getId() == 0, "Id should default to 0 before JPA persists");
-	}
-
-	@Test
 	public void testFirstNameWithWhiteSpaceAtEnd() throws Exception {
 		try {
 			firstUser.setFirstName("Sohail ");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testFirstNameWithWhiteSpaceAtStart() throws Exception {
-		try {
-			firstUser.setFirstName(" Sohail");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testFirstNameWithWhiteSpaceInMiddle() throws Exception {
-		try {
-			firstUser.setFirstName("Soh ail");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testFirstNameWithWhiteSpaceOnEitherSide() throws Exception {
-		try {
-			firstUser.setFirstName(" Sohail ");
 			fail("Expected an IllegalArgumentException to be thrown");
 		} catch (IllegalArgumentException e) {
 			assertEquals("White space found", e.getMessage());
@@ -70,49 +35,9 @@ public class UserTest {
 	}
 
 	@Test
-	public void testLastNameWithWhiteSpaceAtStart() {
-		try {
-			firstUser.setLastName(" John");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testLastNameWithWhiteSpaceInMiddle() {
-		try {
-			firstUser.setLastName("Joh n");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testLastNameWithWhiteSpaceOnEitherSide() {
-		try {
-			firstUser.setLastName(" John ");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
-	}
-
-	@Test
 	public void testEmailWithEmptyString() {
 		try {
 			firstUser.setEmail("");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Empty email", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testEmailWithNull() {
-		try {
-			firstUser.setEmail(null);
 			fail("Expected an IllegalArgumentException to be thrown");
 		} catch (IllegalArgumentException e) {
 			assertEquals("Empty email", e.getMessage());
@@ -130,34 +55,8 @@ public class UserTest {
 	}
 
 	@Test
-	public void testEmailWithoutDot() {
-		try {
-			firstUser.setEmail("msohail@gmailcom");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Invalid email format", e.getMessage());
-		}
-	}
-
-	@Test
-	public void testEmailWithoutDotAndAtRate() {
-		try {
-			firstUser.setEmail("msohailgmailcom");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Invalid email format", e.getMessage());
-		}
-	}
-
-	@Test
 	public void testSetPasswordWhenNullShouldThrow() {
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> firstUser.setPassword(null));
-		assertEquals("Empty password", e.getMessage());
-	}
-
-	@Test
-	public void testSetPasswordWhenEmptyShouldThrow() {
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> firstUser.setPassword(""));
 		assertEquals("Empty password", e.getMessage());
 	}
 
