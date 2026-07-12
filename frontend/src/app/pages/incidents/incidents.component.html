@@ -1,7 +1,7 @@
 <div class="page">
   <h1>{{ auth.isAdmin() ? 'All Incidents (Admin)' : 'My Incidents' }}</h1>
 
-  <form class="create-form" *ngIf="!auth.isAdmin()" (ngSubmit)="create()">
+  <form class="create-form" (ngSubmit)="create()">
     <h2>Report an incident</h2>
     <label>
       Title

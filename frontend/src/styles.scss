@@ -193,6 +193,35 @@ form {
   }
 }
 
+/* A toolbar sitting directly on top of the incidents table, not a boxed form card
+   like create/report — no background/border box, controls run inline in a row. */
+.filter-form {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  max-width: none;
+  margin-bottom: 0;
+  padding: 0 0 0.75rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+
+  h2 {
+    margin: 0 0.25rem 0 0;
+  }
+
+  label {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  button {
+    align-self: center;
+  }
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
