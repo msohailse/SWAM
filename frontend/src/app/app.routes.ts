@@ -5,14 +5,14 @@ import { IncidentsComponent } from './pages/incidents/incidents.component';
 import { TagsComponent } from './pages/tags/tags.component';
 import { DepartmentsComponent } from './pages/departments/departments.component';
 import { UsersComponent } from './pages/users/users.component';
-import { adminGuard, authGuard } from './guards/admin.guard';
+import { adminGuard, authGuard, superAdminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'incidents', component: IncidentsComponent, canActivate: [authGuard] },
   { path: 'tags', component: TagsComponent, canActivate: [authGuard, adminGuard] },
-  { path: 'departments', component: DepartmentsComponent, canActivate: [authGuard, adminGuard] },
+  { path: 'departments', component: DepartmentsComponent, canActivate: [authGuard, superAdminGuard] },
   { path: 'users', component: UsersComponent, canActivate: [authGuard, adminGuard] },
   { path: '', redirectTo: 'incidents', pathMatch: 'full' },
   { path: '**', redirectTo: 'incidents' }

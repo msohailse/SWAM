@@ -60,4 +60,21 @@ public class DepartmentServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.create(reporterId, "Finance-" + System.nanoTime(), "Finance dept"));
     }
+
+    @Test
+    public void testCreateByDepartmentAdminThrows() throws Exception {
+        userTransaction.begin();
+        User deptAdmin = new User();
+        deptAdmin.setFirstName("Dept");
+        deptAdmin.setLastName("Admin");
+        deptAdmin.setEmail("dept-only-admin-" + System.nanoTime() + "@example.com");
+        deptAdmin.setPassword("SecurePass1");
+        deptAdmin.setUserType(UserType.ADMIN);
+        userRepository.save(deptAdmin);
+        int deptAdminId = deptAdmin.getId();
+        userTransaction.commit();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.create(deptAdminId, "Legal-" + System.nanoTime(), "Legal dept"));
+    }
 }

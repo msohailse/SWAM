@@ -21,8 +21,8 @@ public class DepartmentService {
 	@Transactional
 	public Department create(int actingUserId, String name, String description) {
 		User actingUser = userRepository.findById(actingUserId);
-		if (actingUser == null || !actingUser.isActiveAdmin()) {
-			throw new IllegalArgumentException("Only an admin can manage departments");
+		if (actingUser == null || !actingUser.isSuperAdmin()) {
+			throw new IllegalArgumentException("Only a super admin can create departments");
 		}
 		if (departmentRepository.findByName(name) != null) {
 			throw new IllegalArgumentException("Department with name " + name + " already exists");
