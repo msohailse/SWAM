@@ -300,7 +300,7 @@ public class IncidentServiceTest {
 	}
 
 	@Test
-	void closeByDepartmentAdminReassigningDepartmentThrows() throws Exception {
+	void closeByDepartmentAdminCanAssignOwnDepartmentAndClose() throws Exception {
 		com.msohailse.app.incident.domain.Department itSupport = new com.msohailse.app.incident.domain.Department();
 		setDepartmentId(itSupport, 1);
 
@@ -310,13 +310,39 @@ public class IncidentServiceTest {
 		when(userRepository.findById(2)).thenReturn(deptAdmin);
 
 		Incident existing = new Incident();
+		existing.setReportedBy(reportedBy);
+		when(incidentRepository.findById(5)).thenReturn(existing);
+		when(departmentRepository.findById(1)).thenReturn(itSupport);
+
+		Incident closed = incidentService.close(5, 2, "Assigning to my department and closing", 1);
+
+		assertThat(closed.isClosed()).isTrue();
+		assertThat(closed.getAssignedDepartment()).isEqualTo(itSupport);
+		verify(incidentRepository).update(existing);
+	}
+
+	@Test
+	void closeByDepartmentAdminReassigningToAnotherDepartmentThenClosingThrows() throws Exception {
+		com.msohailse.app.incident.domain.Department itSupport = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(itSupport, 1);
+		com.msohailse.app.incident.domain.Department facilities = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(facilities, 2);
+
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		deptAdmin.setDepartment(itSupport);
+		when(userRepository.findById(2)).thenReturn(deptAdmin);
+
+		Incident existing = new Incident();
 		existing.setAssignedDepartment(itSupport);
 		when(incidentRepository.findById(5)).thenReturn(existing);
+		when(departmentRepository.findById(2)).thenReturn(facilities);
 
-		assertThatThrownBy(() -> incidentService.close(5, 2, "trying to reassign", 2))
+		// Allowed to reassign it away from their own department, but then it's no longer
+		// theirs to close - same "it just leaves their scope" rule as update().
+		assertThatThrownBy(() -> incidentService.close(5, 2, "reassigning away", 2))
 				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("super admin");
-		verify(incidentRepository, never()).update(any(Incident.class));
+				.hasMessageContaining("own department");
 	}
 
 	// Department.id is JPA-generated with no public setter — reflection is the

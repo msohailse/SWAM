@@ -140,6 +140,22 @@ public class IncidentService {
 		throw new IllegalArgumentException("status must be 'open' or 'closed', got: " + status);
 	}
 
+	// Shared by update() and addComment(): the incident's own reporter, an active admin of
+	// its currently assigned department, or a super admin. Anyone else has no business
+	// touching or reading into this incident by id.
+	private boolean canView(User user, Incident incident) {
+		if (user.isSuperAdmin()) {
+			return true;
+		}
+		if (incident.getReportedBy().getId() == user.getId()) {
+			return true;
+		}
+		return user.getUserType() == UserType.ADMIN && user.isActiveAdmin()
+				&& incident.getAssignedDepartment() != null
+				&& user.getDepartment() != null
+				&& incident.getAssignedDepartment().getId() == user.getDepartment().getId();
+	}
+
 	@Transactional
 	public Incident update(int id, int actingUserId, String title, String description, Severity severity, Integer assignedDepartmentId) {
 		User actingUser = userRepository.findById(actingUserId);
@@ -155,15 +171,8 @@ public class IncidentService {
 		// own reporter, or an active admin of the department it's currently assigned to — a
 		// super admin can edit anything. Without this, any authenticated user could edit any
 		// incident by id, regardless of who reported it or which department owns it.
-		if (!actingUser.isSuperAdmin()) {
-			boolean isReporter = incident.getReportedBy().getId() == actingUser.getId();
-			boolean isOwningDepartmentAdmin = actingUser.getUserType() == UserType.ADMIN && actingUser.isActiveAdmin()
-					&& incident.getAssignedDepartment() != null
-					&& actingUser.getDepartment() != null
-					&& incident.getAssignedDepartment().getId() == actingUser.getDepartment().getId();
-			if (!isReporter && !isOwningDepartmentAdmin) {
-				throw new IllegalArgumentException("You can only update your own incidents or incidents assigned to your department");
-			}
+		if (!canView(actingUser, incident)) {
+			throw new IllegalArgumentException("You can only update your own incidents or incidents assigned to your department");
 		}
 
 		// Any active admin (department admin or super admin) may (re)assign a department —
@@ -250,14 +259,14 @@ public class IncidentService {
 			throw new IllegalArgumentException("Incident not found: " + id);
 		}
 
-		// Same "only a real change needs a super admin" rule as update() — the close modal
-		// always resends the incident's current department for a department admin (who never
-		// sees the reassignment control at all), so that must stay a no-op, not a rejection.
+		// Same rule as update() — any active admin may reassign, not just super admin. The
+		// close modal always resends the incident's current department for a department admin
+		// who isn't touching it, so that stays a no-op, not a rejection.
 		Integer currentDepartmentId = incident.getAssignedDepartment() == null ? null : incident.getAssignedDepartment().getId();
 		boolean departmentChanging = assignedDepartmentId != null && !assignedDepartmentId.equals(currentDepartmentId);
 		if (departmentChanging) {
-			if (!actingUser.isSuperAdmin()) {
-				throw new IllegalArgumentException("Only a super admin can assign a department");
+			if (!actingUser.isActiveAdmin()) {
+				throw new IllegalArgumentException("Only an admin can assign a department");
 			}
 			Department dept = departmentRepository.findById(assignedDepartmentId);
 			if (dept == null) {
@@ -285,6 +294,8 @@ public class IncidentService {
 
 	// Both the reporter and an admin can post to an incident's comment thread — e.g. the
 	// reporter replying to the admin's closing comment. Only closing itself is admin-only.
+	// Commenting is still gated to whoever can view the incident in the first place (its own
+	// reporter, an active admin of its department, or a super admin) — same rule as update().
 	@Transactional
 	public Comment addComment(int incidentId, int authorUserId, String text) {
 		Incident incident = incidentRepository.findById(incidentId);
@@ -294,6 +305,9 @@ public class IncidentService {
 		User author = userRepository.findById(authorUserId);
 		if (author == null) {
 			throw new IllegalArgumentException("User not found: " + authorUserId);
+		}
+		if (!canView(author, incident)) {
+			throw new IllegalArgumentException("You can only comment on incidents you can view");
 		}
 		return saveComment(incident, author, text);
 	}
