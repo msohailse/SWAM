@@ -1,6 +1,7 @@
 package com.msohailse.app.incident.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -93,9 +94,18 @@ public class User {
 		return this.password;
 	}
 
+	// Stored as a bcrypt hash, never plaintext — validate the raw candidate's strength
+	// first, then hash it before it ever reaches the field.
 	public void setPassword(String password) {
 		validatePasswordString(password);
-		this.password = password;
+		this.password = BcryptUtil.bcryptHash(password);
+	}
+
+	// The only way to check a login attempt's password — there is no way to recover the
+	// original plaintext from the stored hash, by design.
+	@JsonIgnore
+	public boolean verifyPassword(String candidatePassword) {
+		return candidatePassword != null && BcryptUtil.matches(candidatePassword, this.password);
 	}
 
 	public UserType getUserType() {

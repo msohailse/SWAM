@@ -156,6 +156,21 @@ public class IncidentService {
 			throw new IllegalArgumentException("Incident not found: " + id);
 		}
 
+		// A plain field edit (title/description/severity) is only allowed for the incident's
+		// own reporter, or an active admin of the department it's currently assigned to — a
+		// super admin can edit anything. Without this, any authenticated user could edit any
+		// incident by id, regardless of who reported it or which department owns it.
+		if (!actingUser.isSuperAdmin()) {
+			boolean isReporter = incident.getReportedBy().getId() == actingUser.getId();
+			boolean isOwningDepartmentAdmin = actingUser.getUserType() == UserType.ADMIN && actingUser.isActiveAdmin()
+					&& incident.getAssignedDepartment() != null
+					&& actingUser.getDepartment() != null
+					&& incident.getAssignedDepartment().getId() == actingUser.getDepartment().getId();
+			if (!isReporter && !isOwningDepartmentAdmin) {
+				throw new IllegalArgumentException("You can only update your own incidents or incidents assigned to your department");
+			}
+		}
+
 		// Only a super admin may (re)assign a department — a plain resend of the incident's
 		// current department (which the UI always does for anyone who isn't editing it) is
 		// not a change and never blocked.

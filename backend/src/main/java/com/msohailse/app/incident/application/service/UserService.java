@@ -36,14 +36,20 @@ public class UserService {
 		return user;
 	}
 
-	// Public /register above only ever creates a REPORTER — this is the only way an
-	// ADMIN or another SUPER_ADMIN gets created, and only a SUPER_ADMIN may call it.
+	// Public /register above only ever creates a REPORTER. This endpoint is meant to let a
+	// super admin create an ADMIN — it deliberately never mints another SUPER_ADMIN: that
+	// role only ever comes from startup seeding (see DataSeeder), because this whole check
+	// trusts a client-supplied actingUserId with no real session behind it, and SUPER_ADMIN
+	// is the one role that could otherwise be used to fully take over the system through it.
 	@Transactional
 	public User createUser(int actingUserId, String firstName, String lastName, String email, String password,
 			UserType userType, Integer departmentId, Integer adminExpiresInDays) {
 		User actingUser = userRepository.findById(actingUserId);
 		if (actingUser == null || !actingUser.isSuperAdmin()) {
 			throw new IllegalArgumentException("Only a super admin can create users");
+		}
+		if (userType == UserType.SUPER_ADMIN) {
+			throw new IllegalArgumentException("Cannot create another super admin through this endpoint");
 		}
 		if (userRepository.findByEmail(email) != null) {
 			throw new IllegalArgumentException("Email already registered");
@@ -53,6 +59,9 @@ public class UserService {
 		}
 		if (userType != UserType.ADMIN && (departmentId != null || adminExpiresInDays != null)) {
 			throw new IllegalArgumentException("Only an admin can have a department or an expiry");
+		}
+		if (adminExpiresInDays != null && adminExpiresInDays < 1) {
+			throw new IllegalArgumentException("adminExpiresInDays must be positive");
 		}
 
 		User user = new User();
@@ -80,7 +89,7 @@ public class UserService {
 		if (user == null) {
 			throw new IllegalArgumentException("User not found");
 		}
-		if (!user.getPassword().equals(password)) {
+		if (!user.verifyPassword(password)) {
 			throw new IllegalArgumentException("Invalid password");
 		}
 		return user;

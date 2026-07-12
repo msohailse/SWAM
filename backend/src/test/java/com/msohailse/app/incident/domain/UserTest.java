@@ -82,8 +82,10 @@ public class UserTest {
 	}
 
 	@Test
-	public void testSetPasswordWhenValidShouldStorePassword() {
+	public void testSetPasswordWhenValidShouldStoreHashNotPlaintext() {
 		firstUser.setPassword("Abcdefg1");
-		assertEquals("Abcdefg1", firstUser.getPassword());
+		assertNotEquals("Abcdefg1", firstUser.getPassword());
+		assertTrue(firstUser.verifyPassword("Abcdefg1"));
+		assertFalse(firstUser.verifyPassword("WrongPass1"));
 	}
 }

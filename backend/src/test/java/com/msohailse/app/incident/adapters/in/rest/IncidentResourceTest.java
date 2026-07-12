@@ -133,6 +133,32 @@ public class IncidentResourceTest {
 	}
 
 	@Test
+	void updateByNonReportingNonAdminUserReturns400() throws Exception {
+		int id = given()
+				.contentType("application/json")
+				.body(createIncidentBody())
+				.when().post("/incidents")
+				.then().statusCode(200)
+				.extract().path("id");
+
+		userTransaction.begin();
+		User otherReporter = new User();
+		otherReporter.setFirstName("Jane");
+		otherReporter.setLastName("Roe");
+		otherReporter.setEmail("other-" + System.nanoTime() + "@example.com");
+		otherReporter.setPassword("SecurePass1");
+		userRepository.save(otherReporter);
+		userTransaction.commit();
+
+		given()
+				.contentType("application/json")
+				.body("{\"actingUserId\":" + otherReporter.getId()
+						+ ",\"title\":\"Hijacked\",\"description\":\"Not mine\",\"severity\":\"LOW\"}")
+				.when().put("/incidents/" + id)
+				.then().statusCode(400);
+	}
+
+	@Test
 	void findByUserReturnsIncidentsForThatUser() {
 		given().contentType("application/json").body(createIncidentBody())
 				.when().post("/incidents")
