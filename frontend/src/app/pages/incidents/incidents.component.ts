@@ -50,7 +50,7 @@ export class IncidentsComponent implements OnInit {
     if (!user) {
       return;
     }
-    const source = this.auth.isAdmin() ? this.incidentService.findAll() : this.incidentService.findByUser(user.id);
+    const source = this.auth.isAdmin() ? this.incidentService.findAll(user.id) : this.incidentService.findByUser(user.id);
     source.subscribe((incidents) => (this.incidents = incidents));
     this.tagService.findAll().subscribe((tags) => (this.tags = tags));
     this.departmentService.findAll().subscribe((deps) => (this.departments = deps));
@@ -86,7 +86,11 @@ export class IncidentsComponent implements OnInit {
   }
 
   saveEdit(id: number): void {
-    this.incidentService.update(id, this.editTitle, this.editDescription, this.editSeverity, this.editAssignedDepartmentId).subscribe(() => {
+    const user = this.auth.currentUser();
+    if (!user) {
+      return;
+    }
+    this.incidentService.update(id, user.id, this.editTitle, this.editDescription, this.editSeverity, this.editAssignedDepartmentId).subscribe(() => {
       this.editingId = null;
       this.reload();
     });

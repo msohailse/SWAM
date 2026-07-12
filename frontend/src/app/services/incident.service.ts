@@ -7,8 +7,8 @@ import { Comment, Incident, Severity } from '../models/models';
 export class IncidentService {
   constructor(private http: HttpClient) {}
 
-  findAll(): Observable<Incident[]> {
-    return this.http.get<Incident[]>('/api/incidents');
+  findAll(actingUserId: number): Observable<Incident[]> {
+    return this.http.get<Incident[]>(`/api/incidents?actingUserId=${actingUserId}`);
   }
 
   findByUser(userId: number): Observable<Incident[]> {
@@ -19,8 +19,8 @@ export class IncidentService {
     return this.http.post<Incident>('/api/incidents', { title, description, severity, tagTitle, reportedByUserId, assignedDepartmentId });
   }
 
-  update(id: number, title: string, description: string, severity: Severity, assignedDepartmentId?: number | null): Observable<Incident> {
-    return this.http.put<Incident>(`/api/incidents/${id}`, { title, description, severity, assignedDepartmentId });
+  update(id: number, actingUserId: number, title: string, description: string, severity: Severity, assignedDepartmentId?: number | null): Observable<Incident> {
+    return this.http.put<Incident>(`/api/incidents/${id}`, { actingUserId, title, description, severity, assignedDepartmentId });
   }
 
   close(id: number, actingUserId: number, commentText: string, assignedDepartmentId?: number): Observable<Incident> {

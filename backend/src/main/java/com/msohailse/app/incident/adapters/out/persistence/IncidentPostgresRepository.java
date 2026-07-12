@@ -1,6 +1,7 @@
 package com.msohailse.app.incident.adapters.out.persistence;
 
 import com.msohailse.app.incident.application.port.out.IncidentRepositoryPort;
+import com.msohailse.app.incident.domain.Department;
 import com.msohailse.app.incident.domain.Incident;
 import com.msohailse.app.incident.domain.Severity;
 import com.msohailse.app.incident.domain.User;
@@ -27,11 +28,6 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 	}
 
 	@Override
-	public List<Incident> findAll() {
-		return em.createQuery("select i from Incident i", Incident.class).getResultList();
-	}
-
-	@Override
 	public List<Incident> findByUser(User user) {
 		return em.createQuery("select i from Incident i where i.reportedBy = :user", Incident.class)
 				.setParameter("user", user)
@@ -39,7 +35,7 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 	}
 
 	@Override
-	public List<Incident> findFiltered(String tagTitle, Severity severity, Boolean closed) {
+	public List<Incident> findFiltered(String tagTitle, Severity severity, Boolean closed, Department department) {
 		// Plain JPQL, built up with a StringBuilder — no Criteria API/Specifications.
 		// Each filter is optional: only append the clause (and bind the parameter) if the
 		// caller actually asked for it.
@@ -53,6 +49,9 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 		if (closed != null) {
 			jpql.append(" and i.isClosed = :closed");
 		}
+		if (department != null) {
+			jpql.append(" and i.assignedDepartment = :department");
+		}
 
 		TypedQuery<Incident> query = em.createQuery(jpql.toString(), Incident.class);
 		if (tagTitle != null) {
@@ -63,6 +62,9 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 		}
 		if (closed != null) {
 			query.setParameter("closed", closed);
+		}
+		if (department != null) {
+			query.setParameter("department", department);
 		}
 		return query.getResultList();
 	}

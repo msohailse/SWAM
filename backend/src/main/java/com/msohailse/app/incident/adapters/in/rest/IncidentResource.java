@@ -18,20 +18,19 @@ public class IncidentResource {
 	IncidentService incidentService;
 
 	public record CreateIncidentRequest(String title, String description, Severity severity, String tagTitle, int reportedByUserId, Integer assignedDepartmentId) {}
-	public record UpdateIncidentRequest(String title, String description, Severity severity, Integer assignedDepartmentId) {}
+	public record UpdateIncidentRequest(int actingUserId, String title, String description, Severity severity, Integer assignedDepartmentId) {}
 	public record CloseIncidentRequest(int actingUserId, String commentText, Integer assignedDepartmentId) {}
 	public record AddCommentRequest(int authorUserId, String text) {}
 	public record MarkDuplicateRequest(int duplicatedIncidentId) {}
 
 	// CQRS-lite: GET /incidents?tag=&severity=&status= — all three are optional, plain
-	// GET /incidents still returns everything, unfiltered, exactly as before.
+	// GET /incidents still returns everything, unfiltered, exactly as before, UNLESS
+	// actingUserId identifies a department admin, in which case the list is always
+	// narrowed to their own department's incidents regardless of the other filters.
 	@GET
 	public List<Incident> findAll(@QueryParam("tag") String tag, @QueryParam("severity") Severity severity,
-			@QueryParam("status") String status) {
-		if (tag == null && severity == null && status == null) {
-			return incidentService.findAll();
-		}
-		return incidentService.findFiltered(tag, severity, status);
+			@QueryParam("status") String status, @QueryParam("actingUserId") Integer actingUserId) {
+		return incidentService.findFiltered(tag, severity, status, actingUserId);
 	}
 
 	@GET
@@ -55,7 +54,7 @@ public class IncidentResource {
 	@PUT
 	@Path("/{id}")
 	public Incident update(@PathParam("id") int id, UpdateIncidentRequest request) {
-		return incidentService.update(id, request.title(), request.description(), request.severity(), request.assignedDepartmentId());
+		return incidentService.update(id, request.actingUserId(), request.title(), request.description(), request.severity(), request.assignedDepartmentId());
 	}
 
 	@PATCH

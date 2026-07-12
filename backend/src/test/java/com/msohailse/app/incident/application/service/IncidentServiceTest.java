@@ -139,7 +139,7 @@ public class IncidentServiceTest {
 		existing.setTag(new Tag());
 		when(incidentRepository.findById(5)).thenReturn(existing);
 
-		Incident updated = incidentService.update(5, "New title", "New description", Severity.HIGH, null);
+		Incident updated = incidentService.update(5, USER_ID, "New title", "New description", Severity.HIGH, null);
 
 		assertThat(updated.getTitle()).isEqualTo("New title");
 		assertThat(updated.getDescription()).isEqualTo("New description");
@@ -151,7 +151,7 @@ public class IncidentServiceTest {
 	void updateWhenIncidentNotFoundThrows() {
 		when(incidentRepository.findById(404)).thenReturn(null);
 
-		assertThatThrownBy(() -> incidentService.update(404, TITLE, DESCRIPTION, SEVERITY, null))
+		assertThatThrownBy(() -> incidentService.update(404, USER_ID, TITLE, DESCRIPTION, SEVERITY, null))
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 

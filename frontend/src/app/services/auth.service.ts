@@ -32,6 +32,12 @@ export class AuthService {
   isAdmin(): boolean {
     return this.currentUser()?.userType === 'ADMIN';
   }
+
+  // An ADMIN with no department sees/manages everything and is the only one who can
+  // assign/reassign a department; an ADMIN with a department is scoped to it.
+  isSuperAdmin(): boolean {
+    return this.isAdmin() && !this.currentUser()?.department;
+  }
 }
 
 function readStoredUser(): User | null {

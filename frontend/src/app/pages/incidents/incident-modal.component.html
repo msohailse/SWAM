@@ -44,7 +44,7 @@
     <div class="admin-actions" *ngIf="auth.isAdmin() && !incident.closed">
       <h3>Admin Actions</h3>
       <div class="admin-controls">
-        <label>
+        <label *ngIf="auth.isSuperAdmin()">
           Assign Department:
           <select name="closeAssignedDepartmentId" [(ngModel)]="closeAssignedDepartmentId">
             <option [ngValue]="null">-- Select Department --</option>

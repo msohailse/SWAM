@@ -79,7 +79,7 @@ public class IncidentResourceTest {
 
 		given()
 				.contentType("application/json")
-				.body("{\"title\":\"Smoke cleared\",\"description\":\"Resolved\",\"severity\":\"LOW\"}")
+				.body("{\"actingUserId\":" + reporterId + ",\"title\":\"Smoke cleared\",\"description\":\"Resolved\",\"severity\":\"LOW\"}")
 				.when().put("/incidents/" + id)
 				.then().statusCode(200)
 				.body("title", equalTo("Smoke cleared"))

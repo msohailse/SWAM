@@ -6,6 +6,7 @@ export interface User {
   lastName: string;
   email: string;
   userType: UserType;
+  department: Department | null;
 }
 
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -30,7 +31,7 @@ export interface Incident {
   reportedAt: string;
   reportedBy: User;
   tag: Tag;
-  assignedDepartment?: Department;
+  assignedDepartment: Department | null;
   closed: boolean;
 }
 

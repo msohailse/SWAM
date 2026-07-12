@@ -48,26 +48,37 @@ public class DataSeeder {
 	@ConfigProperty(name = "seed.user.password")
 	String userPassword;
 
+	@ConfigProperty(name = "seed.dept-admin.email")
+	String deptAdminEmail;
+
+	@ConfigProperty(name = "seed.dept-admin.password")
+	String deptAdminPassword;
+
 	@Transactional
 	void onStart(@Observes StartupEvent event) {
 		if (!enabled) {
 			return;
 		}
-		seed("Super", "Admin", adminEmail, adminPassword, UserType.ADMIN);
-		seed("Demo", "Reporter", userEmail, userPassword, UserType.REPORTER);
-
 		seedTag("Software", "Software issues and bugs");
 		seedTag("Hardware", "Hardware failures and replacements");
 		seedTag("Network", "Connectivity and infrastructure issues");
 
-		seedDepartment("IT Support", "Technical and IT helpdesk");
+		Department itSupport = seedDepartment("IT Support", "Technical and IT helpdesk");
 		seedDepartment("Facilities", "Building and equipment maintenance");
 		seedDepartment("Human Resources", "Personnel and employee relations");
+
+		// department left null -> this is *the* super admin (sees/manages every incident,
+		// the only one who can assign/reassign a department).
+		seed("Super", "Admin", adminEmail, adminPassword, UserType.ADMIN, null);
+		// A department admin, for the scoped-permissions demo: only sees/closes incidents
+		// assigned to IT Support.
+		seed("IT", "Admin", deptAdminEmail, deptAdminPassword, UserType.ADMIN, itSupport);
+		seed("Demo", "Reporter", userEmail, userPassword, UserType.REPORTER, null);
 	}
 
 	// Idempotent: an already-existing email is left untouched, so restarts (and extra
 	// replicas, apart from a harmless first-boot race) never duplicate or overwrite users.
-	private void seed(String firstName, String lastName, String email, String password, UserType type) {
+	private void seed(String firstName, String lastName, String email, String password, UserType type, Department department) {
 		if (email == null || email.isBlank() || password == null || password.isBlank()) {
 			LOG.warn("Skipping " + type + " seed user: email/password not configured");
 			return;
@@ -81,8 +92,9 @@ public class DataSeeder {
 		user.setEmail(email);
 		user.setPassword(password);
 		user.setUserType(type);
+		user.setDepartment(department);
 		userRepository.save(user);
-		LOG.info("Seeded " + type + " user " + email);
+		LOG.info("Seeded " + type + " user " + email + (department != null ? " (department: " + department.getName() + ")" : ""));
 	}
 
 	private void seedTag(String title, String description) {
@@ -96,14 +108,16 @@ public class DataSeeder {
 		LOG.info("Seeded tag: " + title);
 	}
 
-	private void seedDepartment(String name, String description) {
-		if (departmentRepository.findByName(name) != null) {
-			return;
+	private Department seedDepartment(String name, String description) {
+		Department existing = departmentRepository.findByName(name);
+		if (existing != null) {
+			return existing;
 		}
 		Department dept = new Department();
 		dept.setName(name);
 		dept.setDescription(description);
 		departmentRepository.save(dept);
 		LOG.info("Seeded department: " + name);
+		return dept;
 	}
 }
