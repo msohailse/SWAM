@@ -212,6 +212,82 @@ public class IncidentServiceTest {
 	}
 
 	@Test
+	void closeByDepartmentAdminOnOwnDepartmentSucceeds() throws Exception {
+		com.msohailse.app.incident.domain.Department itSupport = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(itSupport, 1);
+
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		deptAdmin.setDepartment(itSupport);
+		when(userRepository.findById(2)).thenReturn(deptAdmin);
+
+		Incident existing = new Incident();
+		existing.setTitle(TITLE);
+		existing.setDescription(DESCRIPTION);
+		existing.setSeverity(SEVERITY);
+		existing.setReportedBy(reportedBy);
+		existing.setTag(new Tag());
+		existing.setAssignedDepartment(itSupport);
+		when(incidentRepository.findById(5)).thenReturn(existing);
+
+		Incident closed = incidentService.close(5, 2, "Fixed the VPN gateway", null);
+
+		assertThat(closed.isClosed()).isTrue();
+		verify(incidentRepository).update(existing);
+	}
+
+	@Test
+	void closeByDepartmentAdminOnDifferentDepartmentThrows() throws Exception {
+		com.msohailse.app.incident.domain.Department itSupport = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(itSupport, 1);
+		com.msohailse.app.incident.domain.Department facilities = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(facilities, 2);
+
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		deptAdmin.setDepartment(itSupport);
+		when(userRepository.findById(2)).thenReturn(deptAdmin);
+
+		Incident existing = new Incident();
+		existing.setAssignedDepartment(facilities);
+		when(incidentRepository.findById(5)).thenReturn(existing);
+
+		assertThatThrownBy(() -> incidentService.close(5, 2, "trying to close another department's incident", null))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("own department");
+		verify(incidentRepository, never()).update(any(Incident.class));
+	}
+
+	@Test
+	void closeByDepartmentAdminReassigningDepartmentThrows() throws Exception {
+		com.msohailse.app.incident.domain.Department itSupport = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(itSupport, 1);
+
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		deptAdmin.setDepartment(itSupport);
+		when(userRepository.findById(2)).thenReturn(deptAdmin);
+
+		Incident existing = new Incident();
+		existing.setAssignedDepartment(itSupport);
+		when(incidentRepository.findById(5)).thenReturn(existing);
+
+		assertThatThrownBy(() -> incidentService.close(5, 2, "trying to reassign", 2))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("super admin");
+		verify(incidentRepository, never()).update(any(Incident.class));
+	}
+
+	// Department.id is JPA-generated with no public setter — reflection is the
+	// established workaround for giving two test Department instances distinct ids
+	// without a real database assigning them.
+	private void setDepartmentId(com.msohailse.app.incident.domain.Department department, int id) throws Exception {
+		java.lang.reflect.Field field = com.msohailse.app.incident.domain.Department.class.getDeclaredField("id");
+		field.setAccessible(true);
+		field.set(department, id);
+	}
+
+	@Test
 	void deleteDelegatesToRepository() {
 		incidentService.delete(7);
 
