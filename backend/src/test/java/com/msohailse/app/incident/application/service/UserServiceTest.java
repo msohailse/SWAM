@@ -7,11 +7,15 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.msohailse.app.incident.application.port.out.DepartmentRepositoryPort;
 import com.msohailse.app.incident.application.port.out.UserRepositoryPort;
+import com.msohailse.app.incident.domain.Department;
 import com.msohailse.app.incident.domain.User;
+import com.msohailse.app.incident.domain.UserType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -29,6 +33,9 @@ public class UserServiceTest {
 
 	@Mock
 	private UserRepositoryPort userRepository;
+
+	@Mock
+	private DepartmentRepositoryPort departmentRepository;
 
 	private AutoCloseable closeable;
 
@@ -106,5 +113,69 @@ public class UserServiceTest {
 		assertThatThrownBy(() -> userService.register(FIRST_NAME, LAST_NAME, "notanemail", PASSWORD))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessage("Invalid email format");
+	}
+
+	@Test
+	void createUserByDepartmentAdminForcesOwnDepartmentIgnoringRequestedOne() throws Exception {
+		Department ownDept = new Department();
+		setDepartmentId(ownDept, 1);
+		Department otherDept = new Department();
+		setDepartmentId(otherDept, 2);
+
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		deptAdmin.setDepartment(ownDept);
+		when(userRepository.findById(9)).thenReturn(deptAdmin);
+		when(userRepository.findByEmail(EMAIL)).thenReturn(null);
+		when(departmentRepository.findById(1)).thenReturn(ownDept);
+
+		userService.createUser(9, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.ADMIN, otherDept.getId(), null);
+
+		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+		verify(userRepository).save(captor.capture());
+		assertThat(captor.getValue().getDepartment()).isEqualTo(ownDept);
+	}
+
+	@Test
+	void createUserByDepartmentAdminCanCreateReporterWithNoDepartment() {
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		when(userRepository.findById(9)).thenReturn(deptAdmin);
+		when(userRepository.findByEmail(EMAIL)).thenReturn(null);
+
+		userService.createUser(9, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.REPORTER, null, null);
+
+		ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+		verify(userRepository).save(captor.capture());
+		assertThat(captor.getValue().getDepartment()).isNull();
+	}
+
+	@Test
+	void createUserByReporterThrows() {
+		User reporter = buildUser();
+		when(userRepository.findById(9)).thenReturn(reporter);
+
+		assertThatThrownBy(() -> userService.createUser(9, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.REPORTER, null, null))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("admin");
+	}
+
+	@Test
+	void createUserCannotCreateAnotherSuperAdmin() {
+		User superAdmin = new User();
+		superAdmin.setUserType(UserType.SUPER_ADMIN);
+		when(userRepository.findById(1)).thenReturn(superAdmin);
+
+		assertThatThrownBy(() -> userService.createUser(1, FIRST_NAME, LAST_NAME, EMAIL, PASSWORD, UserType.SUPER_ADMIN, null, null))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("super admin");
+	}
+
+	// Department.id is JPA-generated with no public setter — reflection is the established
+	// workaround for giving a test Department a distinct id without a real database.
+	private void setDepartmentId(Department department, int id) throws Exception {
+		java.lang.reflect.Field field = Department.class.getDeclaredField("id");
+		field.setAccessible(true);
+		field.set(department, id);
 	}
 }

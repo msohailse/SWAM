@@ -36,20 +36,30 @@ public class UserService {
 		return user;
 	}
 
-	// Public /register above only ever creates a REPORTER. This endpoint is meant to let a
-	// super admin create an ADMIN — it deliberately never mints another SUPER_ADMIN: that
-	// role only ever comes from startup seeding (see DataSeeder), because this whole check
-	// trusts a client-supplied actingUserId with no real session behind it, and SUPER_ADMIN
-	// is the one role that could otherwise be used to fully take over the system through it.
+	// Public /register above only ever creates a REPORTER. This endpoint lets any active
+	// admin create a REPORTER or an ADMIN — it deliberately never mints another SUPER_ADMIN:
+	// that role only ever comes from startup seeding (see DataSeeder), because this whole
+	// check trusts a client-supplied actingUserId with no real session behind it, and
+	// SUPER_ADMIN is the one role that could otherwise be used to fully take over the system
+	// through it. A department admin (not super) can only ever create another admin within
+	// their own department — departmentId is forced to their own, never trusted from the
+	// client, so the UI shouldn't even offer a choice for that case.
 	@Transactional
 	public User createUser(int actingUserId, String firstName, String lastName, String email, String password,
 			UserType userType, Integer departmentId, Integer adminExpiresInDays) {
 		User actingUser = userRepository.findById(actingUserId);
-		if (actingUser == null || !actingUser.isSuperAdmin()) {
-			throw new IllegalArgumentException("Only a super admin can create users");
+		if (actingUser == null || !actingUser.isActiveAdmin()) {
+			throw new IllegalArgumentException("Only an admin can create users");
 		}
 		if (userType == UserType.SUPER_ADMIN) {
 			throw new IllegalArgumentException("Cannot create another super admin through this endpoint");
+		}
+		if (!actingUser.isSuperAdmin() && userType == UserType.ADMIN) {
+			Department actingDepartment = actingUser.getDepartment();
+			if (actingDepartment == null) {
+				throw new IllegalArgumentException("You must belong to a department to create another admin");
+			}
+			departmentId = actingDepartment.getId();
 		}
 		if (userRepository.findByEmail(email) != null) {
 			throw new IllegalArgumentException("Email already registered");

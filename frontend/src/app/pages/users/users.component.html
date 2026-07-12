@@ -1,5 +1,5 @@
 <div class="page">
-  <h1>Manage Users (Super Admin)</h1>
+  <h1>Manage Users ({{ auth.isSuperAdmin() ? 'Super Admin' : 'Admin' }})</h1>
 
   <form class="create-form" (ngSubmit)="create()">
     <h2>Create a user</h2>
@@ -29,10 +29,13 @@
     <ng-container *ngIf="newUserType === 'ADMIN'">
       <label>
         Department
-        <select name="newDepartmentId" [(ngModel)]="newDepartmentId" required>
+        <select *ngIf="auth.isSuperAdmin(); else ownDeptOnly" name="newDepartmentId" [(ngModel)]="newDepartmentId" required>
           <option [ngValue]="null">-- Select department --</option>
           <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
         </select>
+        <ng-template #ownDeptOnly>
+          <input [value]="auth.currentUser()?.department?.name || 'None'" disabled />
+        </ng-template>
       </label>
       <label>
         Expires in (days)

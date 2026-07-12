@@ -25,13 +25,19 @@ export class UsersComponent implements OnInit {
   newExpiresInDays: number | null = null;
 
   constructor(
-    private auth: AuthService,
+    public auth: AuthService,
     private userService: UserService,
     private departmentService: DepartmentService
   ) {}
 
   ngOnInit(): void {
     this.reload();
+    // A department admin (not super) can only ever create another admin in their own
+    // department - the backend forces this regardless, but preselecting it here means
+    // they never see a choice that wouldn't be honored anyway.
+    if (!this.auth.isSuperAdmin()) {
+      this.newDepartmentId = this.auth.currentUser()?.department?.id ?? null;
+    }
   }
 
   reload(): void {
@@ -44,7 +50,8 @@ export class UsersComponent implements OnInit {
     if (!actingUser) {
       return;
     }
-    const departmentId = this.newUserType === 'ADMIN' ? this.newDepartmentId : null;
+    const ownDepartmentId = !this.auth.isSuperAdmin() ? actingUser.department?.id ?? null : this.newDepartmentId;
+    const departmentId = this.newUserType === 'ADMIN' ? ownDepartmentId : null;
     const expiresInDays = this.newUserType === 'ADMIN' ? this.newExpiresInDays : null;
     this.userService
       .create(actingUser.id, this.newFirstName, this.newLastName, this.newEmail, this.newPassword, this.newUserType, departmentId, expiresInDays)
@@ -55,7 +62,7 @@ export class UsersComponent implements OnInit {
           this.newEmail = '';
           this.newPassword = '';
           this.newUserType = 'ADMIN';
-          this.newDepartmentId = null;
+          this.newDepartmentId = this.auth.isSuperAdmin() ? null : actingUser.department?.id ?? null;
           this.newExpiresInDays = null;
           this.reload();
         },
