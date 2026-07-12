@@ -138,6 +138,9 @@ public class IncidentService {
 
 	@Transactional
 	public Incident markDuplicate(int id, int duplicatedIncidentId) {
+		if (id == duplicatedIncidentId) {
+			throw new IllegalArgumentException("An incident cannot be a duplicate of itself");
+		}
 		Incident incident = incidentRepository.findById(id);
 		if (incident == null) {
 			throw new IllegalArgumentException("Incident not found: " + id);
@@ -149,7 +152,33 @@ public class IncidentService {
 		incident.setIsDuplicate(true);
 		incident.setDuplicatedIncidentId(duplicatedIncidentId);
 		incidentRepository.update(incident);
+
+		// analyzer-service reports duplicates over REST rather than writing to Postgres
+		// itself (it owns no CRUD/domain code, see analyzer-service's DuplicateDetector) —
+		// so the system comment it used to post directly is created here instead, in the
+		// same transaction as the flag update, using the one place that already owns
+		// Comment/User.
+		saveComment(incident, findOrCreateSystemUser(),
+				"Possible duplicate of incident #" + duplicatedIncidentId + " (\"" + duplicated.getTitle() + "\")");
+
 		return incident;
+	}
+
+	private static final String SYSTEM_USER_EMAIL = "system@analyzer.local";
+
+	private User findOrCreateSystemUser() {
+		User systemUser = userRepository.findByEmail(SYSTEM_USER_EMAIL);
+		if (systemUser != null) {
+			return systemUser;
+		}
+		systemUser = new User();
+		systemUser.setFirstName("Duplicate");
+		systemUser.setLastName("Analyzer");
+		systemUser.setEmail(SYSTEM_USER_EMAIL);
+		systemUser.setPassword("NotARealLogin1");
+		systemUser.setUserType(UserType.ADMIN);
+		userRepository.save(systemUser);
+		return systemUser;
 	}
 
 	@Transactional

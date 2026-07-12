@@ -64,8 +64,16 @@ public class DuplicateDetector {
 			return; // deleted in the meantime, nothing to comment on
 		}
 
-		backendApiClient.markDuplicate(incidentId, new MarkDuplicateRequest(matchedId));
-
-		LOG.info("Incident " + incidentId + ": flagged as likely duplicate of #" + matchedId);
+		try {
+			backendApiClient.markDuplicate(incidentId, new MarkDuplicateRequest(matchedId));
+			LOG.info("Incident " + incidentId + ": flagged as likely duplicate of #" + matchedId + " (\"" + matchedTitle + "\")");
+		} catch (Exception e) {
+			// Don't let a backend hiccup (down, timeout, the matched incident got deleted in
+			// the meantime) escape uncaught — that would propagate out of this @Incoming Kafka
+			// consumer and permanently stop consumption of the whole topic (SmallRye's default
+			// failure-strategy is "fail"). Log and move on instead; the next incident-created
+			// event still gets processed normally.
+			LOG.severe("Incident " + incidentId + ": failed to report duplicate of #" + matchedId + ": " + e.getMessage());
+		}
 	}
 }
