@@ -1,18 +1,64 @@
 flowchart LR
-    Reporter((Reporter))
-    Admin((Admin))
-    System((Analyzer\nsystem actor))
+    subgraph SWAM [SWAM — Incident Management System]
+        %% Reporter Use Cases (Top)
+        UC1[Register]
+        UC2[Login]
+        UC3[Report Incident]
+        UC4[Create Tag on-the-fly]
+        UC5[View & Filter Incidents]
+        UC6[Reply to Comment Thread]
+        UC14[Update Incident]
 
-    Reporter --> UC1[Register / Login]
-    Reporter --> UC2[Report an Incident]
-    Reporter --> UC3[View own Incidents]
-    Reporter --> UC4[Reply to Comment thread]
+        %% Dept Admin Use Cases (Middle)
+        UC8[Close Incident]
+        UC10[Manage Tags]
+        UC13[Reassign Department]
+        UC15[Manage Departments]
 
-    Admin --> UC1
-    Admin --> UC5[View all Incidents]
-    Admin --> UC6[Filter Incidents\nby tag/severity/status]
-    Admin --> UC7[Close Incident with Comment]
-    Admin --> UC4
-    Admin --> UC8[Manage Tags]
+        %% Super Admin Use Cases (Bottom)
+        UC16[Create Admin Users]
 
-    System --> UC9[Detect likely duplicate\n& flag with system Comment]
+        %% System Use Cases (Right)
+        UC17[Detect Duplicates]
+        UC18[Publish Duplicate Event]
+    end
+
+    %% Using quotes ensures the arrows render the brackets correctly
+    UC4 -.->|"<<extend>>"| UC3
+    UC18 -.->|"<<extend>>"| UC17
+
+    %% Actors with Icons (stacked vertically on the left)
+    Reporter(("👤 Reporter"))
+    DeptAdmin(("👤 Dept Admin"))
+    SuperAdmin(("👤 Super Admin"))
+    
+    %% System Actor
+    Analyzer(("⚙️ Analyzer\n«system»"))
+
+    %% Align human actors vertically
+    Reporter ~~~ DeptAdmin
+    DeptAdmin ~~~ SuperAdmin
+
+    %% Actor Generalization
+    DeptAdmin -.->|generalizes| Reporter
+    SuperAdmin -.->|generalizes| DeptAdmin
+
+    %% Reporter base use cases
+    Reporter --> UC1
+    Reporter --> UC2
+    Reporter --> UC3
+    Reporter --> UC5
+    Reporter --> UC6
+    Reporter --> UC14
+
+    %% Department Admin specific use cases
+    DeptAdmin --> UC8
+    DeptAdmin --> UC10
+    DeptAdmin --> UC13
+    DeptAdmin --> UC15
+
+    %% Super Admin specific use cases
+    SuperAdmin --> UC16
+
+    %% System Actor Use Cases
+    Analyzer --> UC17
