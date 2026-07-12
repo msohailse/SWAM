@@ -83,7 +83,7 @@ public class IncidentServiceTest {
 		existingTag.setTagTitle(TAG_TITLE);
 		when(tagRepository.findByTitle(TAG_TITLE)).thenReturn(existingTag);
 
-		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID, null);
+		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID);
 
 		verify(tagRepository).findByTitle(TAG_TITLE);
 		verify(tagRepository, never()).save(any(Tag.class));
@@ -93,7 +93,7 @@ public class IncidentServiceTest {
 	void createWhenTagNotFoundCreatesAndSavesTagBeforeIncident() {
 		when(tagRepository.findByTitle(TAG_TITLE)).thenReturn(null);
 
-		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID, null);
+		incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID);
 
 		InOrder inOrder = inOrder(tagRepository, incidentRepository);
 		inOrder.verify(tagRepository).findByTitle(TAG_TITLE);
@@ -107,7 +107,7 @@ public class IncidentServiceTest {
 		existingTag.setTagTitle(TAG_TITLE);
 		when(tagRepository.findByTitle(TAG_TITLE)).thenReturn(existingTag);
 
-		Incident created = incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID, null);
+		Incident created = incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, USER_ID);
 
 		ArgumentCaptor<Incident> captor = ArgumentCaptor.forClass(Incident.class);
 		verify(incidentRepository).save(captor.capture());
@@ -125,7 +125,7 @@ public class IncidentServiceTest {
 	void createWhenUserNotFoundThrows() {
 		when(userRepository.findById(999)).thenReturn(null);
 
-		assertThatThrownBy(() -> incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, 999, null))
+		assertThatThrownBy(() -> incidentService.create(TITLE, DESCRIPTION, SEVERITY, TAG_TITLE, 999))
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 
@@ -153,6 +153,47 @@ public class IncidentServiceTest {
 
 		assertThatThrownBy(() -> incidentService.update(404, USER_ID, TITLE, DESCRIPTION, SEVERITY, null))
 				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void updateByDepartmentAdminCanAssignDepartment() throws Exception {
+		com.msohailse.app.incident.domain.Department itSupport = new com.msohailse.app.incident.domain.Department();
+		setDepartmentId(itSupport, 1);
+
+		User deptAdmin = new User();
+		deptAdmin.setUserType(UserType.ADMIN);
+		deptAdmin.setDepartment(itSupport);
+		when(userRepository.findById(2)).thenReturn(deptAdmin);
+
+		Incident existing = new Incident();
+		existing.setTitle(TITLE);
+		existing.setDescription(DESCRIPTION);
+		existing.setSeverity(SEVERITY);
+		existing.setReportedBy(reportedBy);
+		existing.setTag(new Tag());
+		existing.setAssignedDepartment(itSupport);
+		when(incidentRepository.findById(5)).thenReturn(existing);
+		when(departmentRepository.findById(1)).thenReturn(itSupport);
+
+		Incident updated = incidentService.update(5, 2, TITLE, DESCRIPTION, SEVERITY, 1);
+
+		assertThat(updated.getAssignedDepartment()).isEqualTo(itSupport);
+		verify(incidentRepository).update(existing);
+	}
+
+	@Test
+	void updateByReporterCannotAssignDepartment() {
+		Incident existing = new Incident();
+		existing.setTitle(TITLE);
+		existing.setDescription(DESCRIPTION);
+		existing.setSeverity(SEVERITY);
+		existing.setReportedBy(reportedBy);
+		existing.setTag(new Tag());
+		when(incidentRepository.findById(5)).thenReturn(existing);
+
+		assertThatThrownBy(() -> incidentService.update(5, USER_ID, TITLE, DESCRIPTION, SEVERITY, 1))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("admin");
 	}
 
 	@Test

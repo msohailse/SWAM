@@ -24,7 +24,6 @@ export class IncidentsComponent implements OnInit {
   newDescription = '';
   newSeverity: Severity = 'LOW';
   newTagTitle = '';
-  newAssignedDepartmentId: number | null = null;
 
   editTitle = '';
   editDescription = '';
@@ -75,13 +74,12 @@ export class IncidentsComponent implements OnInit {
       return;
     }
     this.incidentService
-      .create(this.newTitle, this.newDescription, this.newSeverity, this.newTagTitle, user.id, this.newAssignedDepartmentId || undefined)
+      .create(this.newTitle, this.newDescription, this.newSeverity, this.newTagTitle, user.id)
       .subscribe(() => {
         this.newTitle = '';
         this.newDescription = '';
         this.newSeverity = 'LOW';
         this.newTagTitle = '';
-        this.newAssignedDepartmentId = null;
         this.reload();
       });
   }

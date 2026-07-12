@@ -39,8 +39,10 @@ public class IncidentService {
 	@Inject
 	IncidentEventPublisherPort eventPublisher;
 
+	// No assignedDepartmentId here on purpose — department assignment is an admin action,
+	// done afterward via update(), never something the reporter sets while filing a report.
 	@Transactional
-	public Incident create(String title, String description, Severity severity, String tagTitle, int reportedByUserId, Integer assignedDepartmentId) {
+	public Incident create(String title, String description, Severity severity, String tagTitle, int reportedByUserId) {
 		User reportedBy = userRepository.findById(reportedByUserId);
 		if (reportedBy == null) {
 			throw new IllegalArgumentException("User not found: " + reportedByUserId);
@@ -57,13 +59,6 @@ public class IncidentService {
 		incident.setSeverity(severity);
 		incident.setReportedBy(reportedBy);
 		incident.setTag(tag);
-		if (assignedDepartmentId != null) {
-			Department dept = departmentRepository.findById(assignedDepartmentId);
-			if (dept == null) {
-				throw new IllegalArgumentException("Department not found: " + assignedDepartmentId);
-			}
-			incident.setAssignedDepartment(dept);
-		}
 		incidentRepository.save(incident);
 
 		// Fire-and-forget: the Analyzer service picks this up asynchronously to check for
@@ -171,13 +166,16 @@ public class IncidentService {
 			}
 		}
 
-		// Only a super admin may (re)assign a department — a plain resend of the incident's
-		// current department (which the UI always does for anyone who isn't editing it) is
-		// not a change and never blocked.
+		// Any active admin (department admin or super admin) may (re)assign a department —
+		// a reporter never can. A plain resend of the incident's current department (which
+		// the UI always does for anyone who isn't editing it) is not a change and never
+		// blocked. Reassigning away from a department admin's own department is allowed —
+		// the incident then simply stops showing up in that admin's own scoped list, same
+		// as any other incident outside their department.
 		Integer currentDepartmentId = incident.getAssignedDepartment() == null ? null : incident.getAssignedDepartment().getId();
 		boolean departmentChanging = !java.util.Objects.equals(currentDepartmentId, assignedDepartmentId);
-		if (departmentChanging && !actingUser.isSuperAdmin()) {
-			throw new IllegalArgumentException("Only a super admin can assign a department");
+		if (departmentChanging && !actingUser.isActiveAdmin()) {
+			throw new IllegalArgumentException("Only an admin can assign a department");
 		}
 
 		incident.setTitle(title);

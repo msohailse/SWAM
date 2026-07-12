@@ -26,8 +26,10 @@ export class IncidentService {
     return this.http.get<Incident[]>(`/api/incidents?${params.toString()}`);
   }
 
-  create(title: string, description: string, severity: Severity, tagTitle: string, reportedByUserId: number, assignedDepartmentId?: number): Observable<Incident> {
-    return this.http.post<Incident>('/api/incidents', { title, description, severity, tagTitle, reportedByUserId, assignedDepartmentId });
+  // No department here on purpose — assigning a department is an admin action, done
+  // afterward via update(), never something the reporter sets while filing a report.
+  create(title: string, description: string, severity: Severity, tagTitle: string, reportedByUserId: number): Observable<Incident> {
+    return this.http.post<Incident>('/api/incidents', { title, description, severity, tagTitle, reportedByUserId });
   }
 
   update(id: number, actingUserId: number, title: string, description: string, severity: Severity, assignedDepartmentId?: number | null): Observable<Incident> {

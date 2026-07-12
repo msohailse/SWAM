@@ -17,7 +17,7 @@ public class IncidentResource {
 	@Inject
 	IncidentService incidentService;
 
-	public record CreateIncidentRequest(String title, String description, Severity severity, String tagTitle, int reportedByUserId, Integer assignedDepartmentId) {}
+	public record CreateIncidentRequest(String title, String description, Severity severity, String tagTitle, int reportedByUserId) {}
 	public record UpdateIncidentRequest(int actingUserId, String title, String description, Severity severity, Integer assignedDepartmentId) {}
 	public record CloseIncidentRequest(int actingUserId, String commentText, Integer assignedDepartmentId) {}
 	public record AddCommentRequest(int authorUserId, String text) {}
@@ -48,7 +48,7 @@ public class IncidentResource {
 	@POST
 	public Incident create(CreateIncidentRequest request) {
 		return incidentService.create(request.title(), request.description(), request.severity(),
-				request.tagTitle(), request.reportedByUserId(), request.assignedDepartmentId());
+				request.tagTitle(), request.reportedByUserId());
 	}
 
 	@PUT
