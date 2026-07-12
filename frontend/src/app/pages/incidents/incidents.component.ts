@@ -31,6 +31,11 @@ export class IncidentsComponent implements OnInit {
   editSeverity: Severity = 'LOW';
   editAssignedDepartmentId: number | null = null;
 
+  // Filters (CQRS-lite — GET /incidents?tag=&severity=&status=), same query for every role
+  filterTag: string | null = null;
+  filterSeverity: Severity | null = null;
+  filterStatus: 'open' | 'closed' | null = null;
+
   // Modal state
   viewingIncident: Incident | null = null;
 
@@ -50,10 +55,18 @@ export class IncidentsComponent implements OnInit {
     if (!user) {
       return;
     }
-    const source = this.auth.isAdmin() ? this.incidentService.findAll(user.id) : this.incidentService.findByUser(user.id);
-    source.subscribe((incidents) => (this.incidents = incidents));
+    this.incidentService
+      .findAll(user.id, this.filterTag, this.filterSeverity, this.filterStatus)
+      .subscribe((incidents) => (this.incidents = incidents));
     this.tagService.findAll().subscribe((tags) => (this.tags = tags));
     this.departmentService.findAll().subscribe((deps) => (this.departments = deps));
+  }
+
+  clearFilters(): void {
+    this.filterTag = null;
+    this.filterSeverity = null;
+    this.filterStatus = null;
+    this.reload();
   }
 
   create(): void {

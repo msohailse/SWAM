@@ -89,39 +89,45 @@ public class IncidentService {
 	// CQRS-lite: a read-only query endpoint (GET /incidents?tag=&severity=&status=) that
 	// is separate from the create/update/close write path above. It doesn't introduce a
 	// separate read model/projection table (that would be full CQRS) — it just lets the
-	// read side filter flexibly without touching the write side at all.
+	// read side filter flexibly without touching the write side at all. Every role uses
+	// this same query — the only difference is which extra scope (if any) gets layered on
+	// top of the tag/severity/status filters the caller asked for.
 	//
-	// actingUserId also drives department scoping: a department admin only ever sees their
-	// own department's incidents here, regardless of which tag/severity/status filters are
-	// also applied — the scope comes from the caller's own User record, never from a
-	// client-supplied department filter, so it can't be widened by the request itself.
+	// actingUserId drives that scope: a super admin sees everything, a department admin
+	// only ever sees their own department's incidents, and anyone else (a reporter, or an
+	// admin whose grant expired) is scoped to just the incidents they themselves reported —
+	// the scope always comes from the caller's own User record, never from a client-supplied
+	// filter, so it can't be widened by the request itself.
 	public List<Incident> findFiltered(String tagTitle, Severity severity, String status, Integer actingUserId) {
 		Boolean closed = parseStatus(status);
-		Department scopeDepartment = resolveDepartmentScope(actingUserId);
-		return incidentRepository.findFiltered(tagTitle, severity, closed, scopeDepartment);
+		ListScope scope = resolveListScope(actingUserId);
+		return incidentRepository.findFiltered(tagTitle, severity, closed, scope.department(), scope.reportedBy());
 	}
 
-	// null actingUserId -> no scoping (used by callers that aren't an admin viewing a
-	// list). A super admin gets null back -> no scoping, sees everything. An active
-	// (non-expired) department admin gets their own Department back, forcing the list
-	// down to it. Anyone else (a reporter, or an admin whose grant expired) is rejected
-	// outright — returning null for them would mean "no scoping", i.e. showing everything,
-	// which would be a privilege escalation rather than a safe fallback.
-	private Department resolveDepartmentScope(Integer actingUserId) {
+	private record ListScope(Department department, User reportedBy) {}
+
+	private static final ListScope UNSCOPED = new ListScope(null, null);
+
+	// null actingUserId -> unscoped (used by callers that aren't listing on behalf of a
+	// specific user at all). A super admin also gets unscoped -> sees everything. An
+	// active (non-expired) department admin gets scoped to their own Department. Anyone
+	// else (a reporter, or an admin whose grant expired) gets scoped to their own reports
+	// instead — same list a plain reporter always saw, just now composable with filters.
+	private ListScope resolveListScope(Integer actingUserId) {
 		if (actingUserId == null) {
-			return null;
+			return UNSCOPED;
 		}
 		User actingUser = userRepository.findById(actingUserId);
 		if (actingUser == null) {
 			throw new IllegalArgumentException("User not found: " + actingUserId);
 		}
 		if (actingUser.isSuperAdmin()) {
-			return null;
+			return UNSCOPED;
 		}
 		if (actingUser.getUserType() == UserType.ADMIN && actingUser.isActiveAdmin()) {
-			return actingUser.getDepartment();
+			return new ListScope(actingUser.getDepartment(), null);
 		}
-		throw new IllegalArgumentException("Not authorized to view the admin incident list");
+		return new ListScope(null, actingUser);
 	}
 
 	// status is a query string, so it comes in as "open"/"closed", not a boolean —

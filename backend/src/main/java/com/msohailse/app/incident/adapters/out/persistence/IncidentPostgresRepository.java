@@ -35,7 +35,7 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 	}
 
 	@Override
-	public List<Incident> findFiltered(String tagTitle, Severity severity, Boolean closed, Department department) {
+	public List<Incident> findFiltered(String tagTitle, Severity severity, Boolean closed, Department department, User reportedBy) {
 		// Plain JPQL, built up with a StringBuilder — no Criteria API/Specifications.
 		// Each filter is optional: only append the clause (and bind the parameter) if the
 		// caller actually asked for it.
@@ -52,6 +52,9 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 		if (department != null) {
 			jpql.append(" and i.assignedDepartment = :department");
 		}
+		if (reportedBy != null) {
+			jpql.append(" and i.reportedBy = :reportedBy");
+		}
 
 		TypedQuery<Incident> query = em.createQuery(jpql.toString(), Incident.class);
 		if (tagTitle != null) {
@@ -65,6 +68,9 @@ public class IncidentPostgresRepository implements IncidentRepositoryPort {
 		}
 		if (department != null) {
 			query.setParameter("department", department);
+		}
+		if (reportedBy != null) {
+			query.setParameter("reportedBy", reportedBy);
 		}
 		return query.getResultList();
 	}

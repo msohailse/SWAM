@@ -13,9 +13,10 @@ public interface IncidentRepositoryPort {
 
 	// CQRS-lite read side: one flexible query for the read-only /incidents list, kept
 	// separate from the plain findByUser() above so the simple callers don't need to pass
-	// nulls. Any parameter left null means "don't filter on this" — department is how a
-	// department-scoped admin's view gets narrowed server-side, not client-choosable.
-	List<Incident> findFiltered(String tagTitle, Severity severity, Boolean closed, Department department);
+	// nulls. Any parameter left null means "don't filter on this" — department/reportedBy
+	// are how the list gets narrowed server-side based on who's asking (department-scoped
+	// admin, or a reporter's own reports), never client-choosable.
+	List<Incident> findFiltered(String tagTitle, Severity severity, Boolean closed, Department department, User reportedBy);
 
 	void update(Incident incident);
 	void delete(int id);

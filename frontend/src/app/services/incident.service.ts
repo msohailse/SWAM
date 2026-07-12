@@ -7,12 +7,23 @@ import { Comment, Incident, Severity } from '../models/models';
 export class IncidentService {
   constructor(private http: HttpClient) {}
 
-  findAll(actingUserId: number): Observable<Incident[]> {
-    return this.http.get<Incident[]>(`/api/incidents?actingUserId=${actingUserId}`);
-  }
-
-  findByUser(userId: number): Observable<Incident[]> {
-    return this.http.get<Incident[]>(`/api/incidents/user/${userId}`);
+  // The same CQRS-lite endpoint serves every role — the backend narrows the list based on
+  // actingUserId (super admin: everything, department admin: their department, anyone
+  // else: their own reports) and layers tag/severity/status on top of that, so a reporter
+  // filtering their own list and an admin filtering the department list both go through
+  // this one call.
+  findAll(actingUserId: number, tag?: string | null, severity?: Severity | null, status?: string | null): Observable<Incident[]> {
+    const params = new URLSearchParams({ actingUserId: String(actingUserId) });
+    if (tag) {
+      params.set('tag', tag);
+    }
+    if (severity) {
+      params.set('severity', severity);
+    }
+    if (status) {
+      params.set('status', status);
+    }
+    return this.http.get<Incident[]>(`/api/incidents?${params.toString()}`);
   }
 
   create(title: string, description: string, severity: Severity, tagTitle: string, reportedByUserId: number, assignedDepartmentId?: number): Observable<Incident> {

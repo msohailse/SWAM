@@ -36,6 +36,33 @@
     <button type="submit" class="btn-primary">Submit</button>
   </form>
 
+  <form class="filter-form" (ngSubmit)="reload()">
+    <h2>Filter</h2>
+    <label>
+      Tag
+      <input name="filterTag" [(ngModel)]="filterTag" list="tag-options" placeholder="Any tag" />
+    </label>
+    <label>
+      Severity
+      <select name="filterSeverity" [(ngModel)]="filterSeverity">
+        <option [ngValue]="null">Any</option>
+        <option value="LOW">LOW</option>
+        <option value="MEDIUM">MEDIUM</option>
+        <option value="HIGH">HIGH</option>
+      </select>
+    </label>
+    <label>
+      Status
+      <select name="filterStatus" [(ngModel)]="filterStatus">
+        <option [ngValue]="null">Any</option>
+        <option value="open">Open</option>
+        <option value="closed">Closed</option>
+      </select>
+    </label>
+    <button type="submit" class="btn-primary">Apply</button>
+    <button type="button" (click)="clearFilters()">Clear</button>
+  </form>
+
   <table>
     <thead>
       <tr>
