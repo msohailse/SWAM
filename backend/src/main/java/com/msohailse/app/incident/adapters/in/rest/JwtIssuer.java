@@ -19,24 +19,23 @@ public class JwtIssuer {
 	@ConfigProperty(name = "jwt.secret")
 	String secret;
 
+	// Two independent lifetimes on the same token: `exp` is always the 24h session length
+	// (when the user has to log in again, regardless of role). `adminExpiresAt` is a
+	// separate claim carrying the time-boxed admin grant — whoever enforces the token later
+	// checks that claim on top of `exp` to decide whether admin actions are still allowed,
+	// without forcing a fresh login just because the grant lapsed mid-session.
 	String issue(User user) {
 		Key key = Keys.hmacShaKeyFor(secret.getBytes());
 		Date now = new Date();
-		Date defaultExpiration = new Date(now.getTime() + Duration.ofHours(24).toMillis());
+		Date sessionExpiration = new Date(now.getTime() + Duration.ofHours(24).toMillis());
 		Date adminExpiresAt = user.getAdminExpiresAt();
-
-		// A time-boxed admin grant shouldn't outlive itself just because the token has a
-		// longer default lifetime — cap the token's own expiration at the grant's expiry.
-		Date expiration = (adminExpiresAt != null && adminExpiresAt.before(defaultExpiration))
-				? adminExpiresAt
-				: defaultExpiration;
 
 		var builder = Jwts.builder()
 				.subject(String.valueOf(user.getId()))
 				.claim("email", user.getEmail())
 				.claim("userType", user.getUserType().name())
 				.issuedAt(now)
-				.expiration(expiration);
+				.expiration(sessionExpiration);
 		if (adminExpiresAt != null) {
 			builder.claim("adminExpiresAt", adminExpiresAt);
 		}
