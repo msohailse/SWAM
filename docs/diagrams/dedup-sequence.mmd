@@ -3,7 +3,7 @@ sequenceDiagram
     participant API as api-service (IncidentResource/Service)
     participant DB as PostgreSQL
     participant K as Kafka (incident-created)
-    participant AN as analyzer-service
+    participant AN as analyzer_microservice
 
     Reporter->>API: POST /incidents
     API->>DB: save Incident (synchronous)

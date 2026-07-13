@@ -6,9 +6,9 @@ See `CLAUDE.md` for the full architecture/decision log.
 
 ```
 backend/                   Quarkus REST API (Incident/Tag/User/Comment CRUD)
-backend/analyzer-service/  Separate Quarkus project — Kafka consumer, duplicate detection
+backend/analyzer_microservice/  Separate Quarkus project — Kafka consumer, duplicate detection
 frontend/                  Angular 19 standalone SPA
-deploy/docker-compose.yml  Whole stack: postgres + kafka + backend + analyzer-service + frontend
+deploy/docker-compose.yml  Whole stack: postgres + kafka + backend + analyzer_microservice + frontend
 deploy/k8s/                Kubernetes manifests for the same stack (Minikube), + HPA on backend
 ```
 
@@ -46,7 +46,7 @@ Stop with `docker compose down` (add `-v` to also wipe the Postgres volume).
 
 ```bash
 cd backend && mvn quarkus:dev                     # API on :8080, Dev Services auto-starts Postgres+Kafka
-cd backend/analyzer-service && mvn quarkus:dev    # dedup consumer
+cd backend/analyzer_microservice && mvn quarkus:dev    # dedup consumer
 cd frontend && npm install && npx ng serve        # UI on :4200, proxied to :8080
 ```
 
@@ -58,7 +58,7 @@ minikube addons enable metrics-server
 
 eval $(minikube docker-env)
 docker build -t swam-backend:local  -f backend/src/main/docker/Dockerfile.jvm backend
-docker build -t swam-analyzer:local -f backend/analyzer-service/src/main/docker/Dockerfile.jvm backend/analyzer-service
+docker build -t swam-analyzer:local -f backend/analyzer_microservice/src/main/docker/Dockerfile.jvm backend/analyzer_microservice
 docker build -t swam-frontend:local frontend
 
 kubectl apply -f deploy/k8s/
@@ -73,12 +73,12 @@ matters on a shared cluster, and for the headless-Service fix Kafka needed under
 
 ```bash
 cd backend && mvn test          # needs Docker running (Testcontainers/Dev Services)
-cd backend/analyzer-service && mvn test
+cd backend/analyzer_microservice && mvn test
 ```
 
 ## Duplicate detection
 
-Every new incident is published to Kafka (`incident-created` topic). `analyzer-service`
+Every new incident is published to Kafka (`incident-created` topic). `analyzer_microservice`
 consumes it and runs a Postgres `pg_trgm` similarity check (threshold 0.4) against other
 open incidents; a likely duplicate gets a system-authored comment flagging it. This runs
 fully asynchronously — `POST /incidents` itself stays synchronous and unaffected.

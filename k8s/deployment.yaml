@@ -201,25 +201,25 @@ spec:
     - port: 8080
       targetPort: 8080
 ---
-# analyzer-service — no REST endpoints, so no Service needed, just a Deployment that
+# analyzer_microservice — no REST endpoints, so no Service needed, just a Deployment that
 # consumes Kafka and writes duplicate-flag comments straight to Postgres.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: analyzer-service
+  name: analyzer_microservice
   namespace: swam
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: analyzer-service
+      app: analyzer_microservice
   template:
     metadata:
       labels:
-        app: analyzer-service
+        app: analyzer_microservice
     spec:
       containers:
-        - name: analyzer-service
+        - name: analyzer_microservice
           image: swam-analyzer:local
           imagePullPolicy: Never
           env:

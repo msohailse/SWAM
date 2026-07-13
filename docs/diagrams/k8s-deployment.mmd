@@ -9,7 +9,7 @@ flowchart TB
         HPA -.->|scales| BackendDeploy
 
         FE["Deployment: frontend\n(NodePort Service)"]
-        AN["Deployment: analyzer-service\n(no Service, Kafka consumer only)"]
+        AN["Deployment: analyzer_microservice\n(no Service, Kafka consumer only)"]
         PG["Deployment: postgres\n(Service, ClusterIP)"]
         KF["Deployment: kafka\n(headless Service, KRaft single broker)"]
 

@@ -13,7 +13,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       CLUSTER_ID: 4L6g3nShT-eMCtK--X86sw
-    # No host port exposed on purpose — only backend/analyzer-service (inside the
+    # No host port exposed on purpose — only backend/analyzer_microservice (inside the
     # compose network) talk to it, same reasoning as backend's own port setup below.
     expose:
       - "9092"
@@ -59,9 +59,9 @@ services:
       - postgres
       - kafka
 
-  analyzer-service:
+  analyzer_microservice:
     build:
-      context: ./analyzer-service
+      context: ./analyzer_microservice
     environment:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}

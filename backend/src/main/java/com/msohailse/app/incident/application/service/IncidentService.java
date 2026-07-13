@@ -220,8 +220,8 @@ public class IncidentService {
 		incident.setDuplicatedIncidentId(duplicatedIncidentId);
 		incidentRepository.update(incident);
 
-		// analyzer-service reports duplicates over REST rather than writing to Postgres
-		// itself (it owns no CRUD/domain code, see analyzer-service's DuplicateDetector) —
+		// analyzer_microservice reports duplicates over REST rather than writing to Postgres
+		// itself (it owns no CRUD/domain code, see analyzer_microservice's DuplicateDetector) —
 		// so the system comment it used to post directly is created here instead, in the
 		// same transaction as the flag update, using the one place that already owns
 		// Comment/User.

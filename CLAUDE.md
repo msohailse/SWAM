@@ -29,15 +29,15 @@
   everyone's + a Close-with-comment action), a per-incident expandable comment thread
   with a reply box (both roles can post), an admin-only tags CRUD screen gated by a
   functional route guard (`adminGuard`).
-- `deploy/docker-compose.yml` — postgres + kafka + backend + analyzer-service +
+- `deploy/docker-compose.yml` — postgres + kafka + backend + analyzer_microservice +
   frontend(nginx), env-var credentials only (`.env`, gitignored), backend verified to
   scale (`docker compose up --scale backend=3`) since it has no fixed host port.
-- **Kafka + `backend/analyzer-service/` — built and verified 2026-07-07.** `POST
+- **Kafka + `backend/analyzer_microservice/` — built and verified 2026-07-07.** `POST
   /incidents` stays exactly as it was (synchronous, returns the created incident
   immediately — this did NOT become the `202`/async flow described in §1); after saving,
   `IncidentService.create()` publishes a JSON event on the `incident-created` topic via a
   new `IncidentEventPublisherPort`/`KafkaIncidentEventPublisher` adapter. A **separate**
-  Quarkus project, `backend/analyzer-service` (own `pom.xml`, own Docker image, zero REST
+  Quarkus project, `backend/analyzer_microservice` (own `pom.xml`, own Docker image, zero REST
   endpoints, zero shared Java code with `backend/` — only the DB schema and the Kafka
   topic connect them), consumes that topic and runs **Stage-1 dedup only** (`pg_trgm`
   `similarity()` via a native query, threshold 0.4, against other open incidents,
@@ -61,7 +61,7 @@
 - **Top-level `README.md` added** — setup/run steps (Docker Compose quick-start, running
   each service individually for dev, API quick reference, test commands).
 - **Minikube/K8s + HPA — built and verified 2026-07-07.** `deploy/k8s/` deploys the full
-  stack (postgres, kafka, backend, analyzer-service, frontend) to a real local Kubernetes
+  stack (postgres, kafka, backend, analyzer_microservice, frontend) to a real local Kubernetes
   cluster in its own `swam` namespace, with a plain CPU-based `HorizontalPodAutoscaler`
   (D6) on the backend. Verified live end-to-end (register → create incidents → dedup
   flagged, same as Docker Compose) and verified the HPA itself: a synthetic load
@@ -209,10 +209,10 @@ LLM "is this the same incident?").
 |---|----------|-----------|--------|
 | D1 | **Quarkus** as Jakarta EE runtime | Implements Jakarta REST/CDI/JPA + MicroProfile; first-class Kafka (SmallRye Reactive Messaging), Dev Services (auto-starts Postgres/Kafka in dev), tiny containers for K8s | ✅ **verified 2026-07-06**: course's own module IIB (2026-04-21 lecture, Dr. Scommegna) is literally "Quarkus in the development of microservices orchestrated by Kubernetes" (paired with Istio/K6/Grafana/OpenTelemetry per `course_content` forum announcement). No WildFly/Payara/GlassFish named anywhere in the export. |
 | D1b | **Pragmatic Hexagonal (JPA-in-domain)** — domain entities keep `@Entity` directly, no separate mapping layer | Reversed 2026-07-07 from the earlier Strict default: the migrated `backend/` codebase's entities were already JPA-annotated and already tested; rewriting them pure would be throwaway work for no report benefit, since the course's own slides (`SWAM26-19_HexagonalAndCleanArchitectures.pdf`) explicitly sanction this variant too. Ports (`application/port/out/`) still isolate persistence behind interfaces — only the "zero framework imports in domain" purity rule is relaxed | ✅ implemented 2026-07-07 |
-| D2 | **Two services** (API + Analyzer), one monorepo, no shared Java code between them (only the DB schema + Kafka topic connect them) | Enough to demonstrate EDA + independent scaling; more services = scope creep. No shared library because that would couple two "independent" services at the code level — each owns its own minimal model of the shared tables | ✅ implemented 2026-07-07: `backend/` (api-service) + `backend/analyzer-service/`, verified live via Docker |
+| D2 | **Two services** (API + Analyzer), one monorepo, no shared Java code between them (only the DB schema + Kafka topic connect them) | Enough to demonstrate EDA + independent scaling; more services = scope creep. No shared library because that would couple two "independent" services at the code level — each owns its own minimal model of the shared tables | ✅ implemented 2026-07-07: `backend/` (api-service) + `backend/analyzer_microservice/`, verified live via Docker |
 | D3 | **Lightweight CQRS, no event sourcing** | Separate read models (JPA projections / views) updated from events; event sourcing would double the project size | proposed, not started — current reads are direct queries against the write-side tables |
 | D4 | **Transactional outbox pattern** for publishing to Kafka | Incident+Tags+outbox row commit in ONE transaction → this *is* the "strict ACID" requirement from the proposal, and a strong report section. A simple poller relays outbox → Kafka | **cut for time** (see §7 Day-1 cuts) — publish happens directly in `IncidentService.create()` after `save()`, not via an outbox row. Document the dual-write risk this reintroduces as "future developments." |
-| D5 | **Dedup = pg_trgm** implemented; **+ pgvector embeddings** deferred (§3) | Intelligent, self-contained, testable, free | ✅ Stage-1 (pg_trgm) implemented + verified 2026-07-07 in `analyzer-service`'s `DuplicateDetector`; Stage-2 (embeddings) still not started |
+| D5 | **Dedup = pg_trgm** implemented; **+ pgvector embeddings** deferred (§3) | Intelligent, self-contained, testable, free | ✅ Stage-1 (pg_trgm) implemented + verified 2026-07-07 in `analyzer_microservice`'s `DuplicateDetector`; Stage-2 (embeddings) still not started |
 | D6 | **Plain Kubernetes HPA (CPU-based)**, not KEDA | User already knows K8s and wants a real deployment within the 4-day window; plain HPA is exactly what the course's own Kubernetes lecture teaches (control loop, desired-replica formula, stabilization window) — safer to actually deploy correctly than KEDA-on-Kafka-lag, which isn't covered in any course material we found | ✅ decided 2026-07-06, actually deployed (not manifests-only) |
 | D7 | **Minikube** for local K8s | User's preference — already knows Kubernetes; same role `kind` would have played (single-node cluster on the laptop), swapped for the tool they're fluent in. Real deployment, not "designed, not deployed" | ✅ decided 2026-07-06 |
 | D8 | **k6** for synthetic load + measurements | Scriptable, produces CSV/JSON for report charts | proposed |
@@ -264,7 +264,7 @@ SWAM/
       adapters/out/persistence/ # *PostgresRepository (@ApplicationScoped, @Inject EntityManager)
       adapters/out/messaging/   # KafkaIncidentEventPublisher — publishes incident-created events
     src/main/docker/Dockerfile.jvm
-    analyzer-service/     # separate Quarkus project — Kafka consumer, Stage-1 dedup (pg_trgm)
+    analyzer_microservice/     # separate Quarkus project — Kafka consumer, Stage-1 dedup (pg_trgm)
       src/main/java/com/msohailse/app/analyzer/
         domain/                    # own minimal Incident/User/Comment @Entity mapped to the same tables — no shared code with backend/
         application/DuplicateDetector.java  # pg_trgm similarity query + system-comment write + pg_trgm extension bootstrap
@@ -273,7 +273,7 @@ SWAM/
   frontend/               # Angular 19 standalone SPA (login/register/incidents/tags, adminGuard)
     Dockerfile, nginx.conf
   deploy/
-    docker-compose.yml    # kafka + postgres + backend + analyzer-service + frontend, host port 5433 for postgres (5432 taken by another project)
+    docker-compose.yml    # kafka + postgres + backend + analyzer_microservice + frontend, host port 5433 for postgres (5432 taken by another project)
     .env.example          # copy to .env (gitignored) for real credentials
     k8s/                  # Minikube manifests — dedicated "swam" namespace, headless Kafka Service, CPU-based HPA on backend
 ```
@@ -330,7 +330,7 @@ Angular + Docker) first instead of the async Kafka/`202` flow, since the existin
 `incident-reporting-system` codebase gave a head start on CRUD but had zero REST/UI. The
 async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the start of "Day 2."
 - [x] `git init` done (repo: `msohailse/SWAM`, not yet pushed); `.gitignore` added; `ProjectIdea.md`/`CLAUDE.md` not yet committed
-- [x] `backend/` migrated to Quarkus (this is the api-service; `analyzer-service` doesn't exist yet)
+- [x] `backend/` migrated to Quarkus (this is the api-service; `analyzer_microservice` doesn't exist yet)
 - [x] `deploy/docker-compose.yml`: postgres + backend + frontend — **no Kafka yet** (that's Day 2)
 - [x] Domain model — `Incident`, `Tag`, `User`, `UserType`, `Severity`, `Comment` — kept `@Entity` (Pragmatic Hexagonal, D1b revised)
 - [x] Ports: `IncidentRepositoryPort`, `TagRepositoryPort`, `UserRepositoryPort`, `CommentRepositoryPort`
@@ -352,7 +352,7 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - 📸 Capture: tech stack table, domain class diagram (now includes `Comment`), ER diagram, REST API sequence diagram
 
 ### Day 2 — Analyzer + Full Dedup + CQRS Read Side
-- [x] Kafka consumer in analyzer-service (consumer group `analyzer`) — not explicitly
+- [x] Kafka consumer in analyzer_microservice (consumer group `analyzer`) — not explicitly
   idempotent (no dedup-of-events-themselves logic) since re-processing the same
   incident-created event twice just adds one more duplicate-flag comment, harmless for a prototype
 - [x] Stage-1: `pg_trgm` similarity query against other open incidents, threshold 0.4 (native query, `DuplicateDetector.checkForDuplicate`) — verified live: similar pair flagged, unrelated incident not
@@ -369,14 +369,14 @@ async ingestion flow (`POST /reports` → `202`, Kafka, Analyzer) is now the sta
 - [x] CQRS-lite filtered read endpoint — `GET /incidents?tag=&severity=&status=` (bare minimum, no separate read-model/projection table); `case_summary`/`/stats` style read models still not built, current reads otherwise are direct `GET /incidents`, `GET /incidents/user/{id}` against the write-side tables
 - [x] ~~Automated test for the dedup flow~~ — **dropped, testing not required** (see §8);
   verified manually via curl instead, which is documented in the report.
-- 📸 Capture: EDA component diagram (backend → Kafka → analyzer-service), dedup decision flow (trgm-only for now)
+- 📸 Capture: EDA component diagram (backend → Kafka → analyzer_microservice), dedup decision flow (trgm-only for now)
 
 ### Day 3 — Frontend + Real Minikube Deployment + Scaling Demo
 - [x] Angular scaffold — done earlier than planned, see Day 1 (needed to validate the REST API as it was built)
 - [x] Wire CORS on API service — done earlier (Day 1), `quarkus.http.cors=true`
-- [x] Containerfiles for all three services (backend, analyzer-service, frontend) — done earlier (Day 1/2); built straight into Minikube's own Docker daemon via `eval $(minikube docker-env)` + `docker build`, no registry push needed (`imagePullPolicy: Never`)
+- [x] Containerfiles for all three services (backend, analyzer_microservice, frontend) — done earlier (Day 1/2); built straight into Minikube's own Docker daemon via `eval $(minikube docker-env)` + `docker build`, no registry push needed (`imagePullPolicy: Never`)
 - [x] K8s manifests — `deploy/k8s/`: `00-namespace.yaml` (dedicated `swam` namespace — see incident note below), `00-secret.yaml` (DB credentials), `01-postgres.yaml`, `02-kafka.yaml` (Deployment + **headless** Service — see note below), `03-backend.yaml` (Deployment + Service + CPU requests/limits for HPA), `04-analyzer.yaml` (Deployment, no Service — no REST), `05-frontend.yaml` (Deployment + NodePort Service), `06-backend-hpa.yaml` (`autoscaling/v2` HPA, CPU target 50%, min 1/max 5)
-- [x] Deployed for real to Minikube (not "designed, not deployed") — verified live: registered a user, created two near-duplicate incidents through the K8s-hosted stack, confirmed the full EDA pipeline (backend → Kafka → analyzer-service → Postgres) flags the second one, exactly as it does under Docker Compose
+- [x] Deployed for real to Minikube (not "designed, not deployed") — verified live: registered a user, created two near-duplicate incidents through the K8s-hosted stack, confirmed the full EDA pipeline (backend → Kafka → analyzer_microservice → Postgres) flags the second one, exactly as it does under Docker Compose
 - [x] HPA scaling demo — ran a 6-replica `busybox` load-generator Deployment hammering `GET /incidents`; watched `kubectl get hpa -n swam -w`: backend climbed from 1 → 3 → 5 replicas (max) as CPU rose from 6% to 127%/50% target, then scaled back down once the load generator was removed (HPA's default 5-minute scale-down stabilization window)
 - [x] Lightweight load comparison (no k6, no professor requirement for it — dropped the
   "formal k6 script" ambition, done with plain parallel `curl` instead) — 1500 requests

@@ -25,7 +25,7 @@ public class AnalysisCompletedConsumer {
 			JsonNode event = objectMapper.readTree(json);
 			incidentService.markDuplicate(event.get("incidentId").asInt(), event.get("duplicatedIncidentId").asInt());
 		} catch (Exception e) {
-			// Same reasoning as analyzer-service's own consumer: don't let a bad/stale event
+			// Same reasoning as analyzer_microservice's own consumer: don't let a bad/stale event
 			// (e.g. one of the two incidents got deleted in the meantime) escape uncaught and
 			// wedge this topic's consumption under Kafka's default failure strategy.
 			LOG.severe("Failed to process analysis-completed event: " + json + " (" + e.getMessage() + ")");

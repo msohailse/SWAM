@@ -5,7 +5,7 @@ see the top-level `README.md` for running the whole stack and `CLAUDE.md` for th
 architecture/decision log). A Quarkus 3 service that owns all synchronous work: CRUD for
 incidents, tags, users, and comment threads, plus publishing an `incident-created` Kafka
 event after every new incident — consumed asynchronously by the separate
-[`analyzer-service/`](analyzer-service/) for duplicate detection.
+[`analyzer_microservice/`](analyzer_microservice/) for duplicate detection.
 
 This service started life as a Java 8 Swing desktop app from an earlier course project
 and was migrated to this REST API; none of the Swing/desktop code remains.
@@ -51,7 +51,7 @@ src/main/java/com/msohailse/app/incident/
                            + exception mapper (business-rule violations -> 400 JSON)
     out/persistence/       *PostgresRepository — JPA implementations of the ports
     out/messaging/         KafkaIncidentEventPublisher — incident-created events
-analyzer-service/          separate Quarkus project (own pom.xml, own image, zero shared
+analyzer_microservice/          separate Quarkus project (own pom.xml, own image, zero shared
                            Java code with this one) — Kafka consumer + pg_trgm dedup
 ```
 
@@ -68,5 +68,5 @@ directly.
   `@ManyToOne` to its reporting User and to one Tag
 - **Tag** — tagTitle, tagDescription (one tag per incident, admin-managed)
 - **Comment** — thread entry on an incident (author + timestamp); created by an admin
-  closing an incident, by either role replying, or by `analyzer-service` flagging a
+  closing an incident, by either role replying, or by `analyzer_microservice` flagging a
   likely duplicate
