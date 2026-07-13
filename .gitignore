@@ -4,6 +4,7 @@ deploy/.env
 
 # Java / Maven
 backend/target/
+analyzer_microservice/target/
 
 # Node / Angular
 frontend/node_modules/
