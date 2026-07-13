@@ -15,43 +15,27 @@ public class UserTest {
 	}
 
 	@Test
-	public void testFirstNameWithWhiteSpaceAtEnd() throws Exception {
-		try {
-			firstUser.setFirstName("Sohail ");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
+	public void testFirstNameWithWhiteSpaceAtEnd() {
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> firstUser.setFirstName("Sohail "));
+		assertEquals("White space found", e.getMessage());
 	}
 
 	@Test
 	public void testLastNameWithWhiteSpaceAtEnd() {
-		try {
-			firstUser.setLastName("John ");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("White space found", e.getMessage());
-		}
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> firstUser.setLastName("John "));
+		assertEquals("White space found", e.getMessage());
 	}
 
 	@Test
 	public void testEmailWithEmptyString() {
-		try {
-			firstUser.setEmail("");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Empty email", e.getMessage());
-		}
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> firstUser.setEmail(""));
+		assertEquals("Empty email", e.getMessage());
 	}
 
 	@Test
 	public void testEmailWithoutAtRate() {
-		try {
-			firstUser.setEmail("msohailgmail.com");
-			fail("Expected an IllegalArgumentException to be thrown");
-		} catch (IllegalArgumentException e) {
-			assertEquals("Invalid email format", e.getMessage());
-		}
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> firstUser.setEmail("msohailgmail.com"));
+		assertEquals("Invalid email format", e.getMessage());
 	}
 
 	@Test
