@@ -6,6 +6,7 @@ import com.msohailse.app.incident.domain.UserType;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 @Path("/users")
@@ -15,6 +16,9 @@ public class UserResource {
 
 	@Inject
 	UserService userService;
+
+	@Inject
+	JwtIssuer jwtIssuer;
 
 	public record RegisterRequest(String firstName, String lastName, String email, String password) {}
 	public record LoginRequest(String email, String password) {}
@@ -49,9 +53,13 @@ public class UserResource {
 				request.adminExpiresInDays());
 	}
 
+	// Token rides on the Authorization response header rather than the body, so the
+	// response shape (and every existing caller/test expecting a plain User) is unchanged.
 	@POST
 	@Path("/login")
-	public User login(LoginRequest request) {
-		return userService.login(request.email(), request.password());
+	public Response login(LoginRequest request) {
+		User user = userService.login(request.email(), request.password());
+		String token = jwtIssuer.issue(user);
+		return Response.ok(user).header("Authorization", "Bearer " + token).build();
 	}
 }
