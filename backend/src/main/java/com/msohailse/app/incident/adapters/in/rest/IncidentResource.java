@@ -83,7 +83,7 @@ public class IncidentResource {
 
 	@DELETE
 	@Path("/{id}")
-	public void delete(@PathParam("id") int id) {
-		incidentService.delete(id);
+	public void delete(@PathParam("id") int id, @QueryParam("actingUserId") int actingUserId) {
+		incidentService.delete(id, actingUserId);
 	}
 }

@@ -108,7 +108,11 @@ export class IncidentsComponent implements OnInit {
   }
 
   delete(id: number): void {
-    this.incidentService.delete(id).subscribe(() => this.reload());
+    const user = this.auth.currentUser();
+    if (!user) {
+      return;
+    }
+    this.incidentService.delete(id, user.id).subscribe(() => this.reload());
   }
 
   viewIncident(incident: Incident): void {

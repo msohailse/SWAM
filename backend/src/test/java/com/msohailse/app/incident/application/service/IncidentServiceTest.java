@@ -355,10 +355,33 @@ public class IncidentServiceTest {
 	}
 
 	@Test
-	void deleteDelegatesToRepository() {
-		incidentService.delete(7);
+	void deleteDelegatesToRepositoryWhenOwnIncident() {
+		Incident existing = new Incident();
+		existing.setReportedBy(reportedBy);
+		when(incidentRepository.findById(7)).thenReturn(existing);
+
+		incidentService.delete(7, USER_ID);
 
 		verify(incidentRepository).delete(7);
+	}
+
+	@Test
+	void deleteByNonOwningNonAdminThrows() {
+		Incident existing = new Incident();
+		existing.setReportedBy(reportedBy);
+		when(incidentRepository.findById(7)).thenReturn(existing);
+
+		User otherReporter = new User();
+		otherReporter.setId(2);
+		otherReporter.setFirstName("Jane");
+		otherReporter.setLastName("Roe");
+		otherReporter.setEmail("jane@example.com");
+		otherReporter.setPassword("SecurePass1");
+		when(userRepository.findById(2)).thenReturn(otherReporter);
+
+		assertThatThrownBy(() -> incidentService.delete(7, 2))
+				.isInstanceOf(IllegalArgumentException.class);
+		verify(incidentRepository, never()).delete(7);
 	}
 
 	@Test

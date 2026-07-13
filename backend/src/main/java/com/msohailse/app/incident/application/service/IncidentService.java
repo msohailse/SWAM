@@ -329,8 +329,21 @@ public class IncidentService {
 		return commentRepository.findByIncident(incident);
 	}
 
+	// Same visibility rule as update()/addComment(): the incident's own reporter, an
+	// active admin of its department, or a super admin.
 	@Transactional
-	public void delete(int id) {
+	public void delete(int id, int actingUserId) {
+		User actingUser = userRepository.findById(actingUserId);
+		if (actingUser == null) {
+			throw new IllegalArgumentException("User not found: " + actingUserId);
+		}
+		Incident incident = incidentRepository.findById(id);
+		if (incident == null) {
+			throw new IllegalArgumentException("Incident not found: " + id);
+		}
+		if (!canView(actingUser, incident)) {
+			throw new IllegalArgumentException("You can only delete your own incidents or incidents assigned to your department");
+		}
 		incidentRepository.delete(id);
 	}
 }

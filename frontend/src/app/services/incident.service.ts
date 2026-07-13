@@ -48,7 +48,7 @@ export class IncidentService {
     return this.http.post<Comment>(`/api/incidents/${id}/comments`, { authorUserId, text });
   }
 
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`/api/incidents/${id}`);
+  delete(id: number, actingUserId: number): Observable<void> {
+    return this.http.delete<void>(`/api/incidents/${id}?actingUserId=${actingUserId}`);
   }
 }

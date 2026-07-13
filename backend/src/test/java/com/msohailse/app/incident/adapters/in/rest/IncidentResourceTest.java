@@ -112,7 +112,7 @@ public class IncidentResourceTest {
 				.body("[1].text", equalTo("Thanks, confirming it's fixed"));
 
 		given()
-				.when().delete("/incidents/" + id)
+				.when().delete("/incidents/" + id + "?actingUserId=" + reporterId)
 				.then().statusCode(204);
 	}
 
