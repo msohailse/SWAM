@@ -19,3 +19,6 @@ course_content/
 
 # Report/presentation deliverables — kept local-only, not in the repo
 report/
+
+
+info/*
