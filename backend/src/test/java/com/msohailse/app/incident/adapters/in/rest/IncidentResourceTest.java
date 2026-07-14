@@ -21,8 +21,14 @@ public class IncidentResourceTest {
 	@Inject
 	UserTransaction userTransaction;
 
+	@Inject
+	JwtIssuer jwtIssuer;
+
 	private int reporterId;
 	private int adminId;
+	// JwtAuthFilter only checks that a token is validly signed, not whose it is — any
+	// authenticated user's token satisfies it for these tests.
+	private String authHeader;
 
 	// Setup writes directly through the repository port (skipping the REST layer) but must
 	// really commit — the actual test calls go over HTTP, which runs in its own separate
@@ -48,6 +54,8 @@ public class IncidentResourceTest {
 		userRepository.save(admin);
 		adminId = admin.getId();
 		userTransaction.commit();
+
+		authHeader = "Bearer " + jwtIssuer.issue(admin);
 	}
 
 	private String createIncidentBody() {
@@ -58,6 +66,7 @@ public class IncidentResourceTest {
 	@Test
 	void createFindUpdateCloseDeleteIncident() {
 		int deptId = given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + adminId + ",\"name\":\"Support-" + System.nanoTime() + "\"}")
 				.when().post("/departments")
@@ -65,6 +74,7 @@ public class IncidentResourceTest {
 				.extract().path("id");
 
 		int id = given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body(createIncidentBody())
 				.when().post("/incidents")
@@ -78,6 +88,7 @@ public class IncidentResourceTest {
 				.body("severity", equalTo("HIGH"));
 
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + reporterId + ",\"title\":\"Smoke cleared\",\"description\":\"Resolved\",\"severity\":\"LOW\"}")
 				.when().put("/incidents/" + id)
@@ -86,6 +97,7 @@ public class IncidentResourceTest {
 				.body("severity", equalTo("LOW"));
 
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + adminId + ",\"commentText\":\"Resolved, fixed the wiring\",\"assignedDepartmentId\":" + deptId + "}")
 				.when().patch("/incidents/" + id + "/close")
@@ -99,6 +111,7 @@ public class IncidentResourceTest {
 				.body("[0].text", equalTo("Resolved, fixed the wiring"));
 
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"authorUserId\":" + reporterId + ",\"text\":\"Thanks, confirming it's fixed\"}")
 				.when().post("/incidents/" + id + "/comments")
@@ -112,6 +125,7 @@ public class IncidentResourceTest {
 				.body("[1].text", equalTo("Thanks, confirming it's fixed"));
 
 		given()
+				.header("Authorization", authHeader)
 				.when().delete("/incidents/" + id + "?actingUserId=" + reporterId)
 				.then().statusCode(204);
 	}
@@ -119,6 +133,7 @@ public class IncidentResourceTest {
 	@Test
 	void closeByNonAdminReturns400() {
 		int id = given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body(createIncidentBody())
 				.when().post("/incidents")
@@ -126,6 +141,7 @@ public class IncidentResourceTest {
 				.extract().path("id");
 
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + reporterId + ",\"commentText\":\"trying to close my own\"}")
 				.when().patch("/incidents/" + id + "/close")
@@ -135,6 +151,7 @@ public class IncidentResourceTest {
 	@Test
 	void updateByNonReportingNonAdminUserReturns400() throws Exception {
 		int id = given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body(createIncidentBody())
 				.when().post("/incidents")
@@ -151,6 +168,7 @@ public class IncidentResourceTest {
 		userTransaction.commit();
 
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + otherReporter.getId()
 						+ ",\"title\":\"Hijacked\",\"description\":\"Not mine\",\"severity\":\"LOW\"}")
@@ -160,7 +178,7 @@ public class IncidentResourceTest {
 
 	@Test
 	void findByUserReturnsIncidentsForThatUser() {
-		given().contentType("application/json").body(createIncidentBody())
+		given().header("Authorization", authHeader).contentType("application/json").body(createIncidentBody())
 				.when().post("/incidents")
 				.then().statusCode(200);
 
