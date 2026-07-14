@@ -1,10 +1,10 @@
 # SWAM API Service (`backend/`)
 
 The main REST API of the SWAM incident-management project (SWAM course exam project —
-see the top-level `README.md` for running the whole stack and `CLAUDE.md` for the full
-architecture/decision log). A Quarkus 3 service that owns all synchronous work: CRUD for
-incidents, tags, users, and comment threads, plus publishing an `incident-created` Kafka
-event after every new incident — consumed asynchronously by the separate
+see the top-level `README.md` for running the whole stack). A Quarkus 3 service that
+owns all synchronous work: CRUD for incidents, tags, users, and comment threads, plus
+publishing an `incident-created` Kafka event after every new incident — consumed
+asynchronously by the separate
 [`analyzer_microservice/`](analyzer_microservice/) for duplicate detection.
 
 This service started life as a Java 8 Swing desktop app from an earlier course project
@@ -62,8 +62,8 @@ directly.
 
 ## Entities
 
-- **User** — firstName, lastName, email (unique), password (plain text — documented stub,
-  no hashing/JWT), `UserType` role: `REPORTER` or `ADMIN`
+- **User** — firstName, lastName, email (unique), password (bcrypt-hashed via
+  `BcryptUtil`), `UserType` role: `REPORTER` or `ADMIN`
 - **Incident** — title, description, severity (`LOW`/`MEDIUM`/`HIGH`), closed flag;
   `@ManyToOne` to its reporting User and to one Tag
 - **Tag** — tagTitle, tagDescription (one tag per incident, admin-managed)
