@@ -22,8 +22,14 @@ public class TagResourceTest {
 	@Inject
 	UserTransaction userTransaction;
 
+	@Inject
+	JwtIssuer jwtIssuer;
+
 	private int adminId;
 	private int reporterId;
+	// JwtAuthFilter only checks that a token is validly signed, not whose it is — any
+	// authenticated user's token satisfies it for these tests.
+	private String authHeader;
 
 	@BeforeEach
 	void setup() throws Exception {
@@ -45,6 +51,8 @@ public class TagResourceTest {
 		userRepository.save(reporter);
 		reporterId = reporter.getId();
 		userTransaction.commit();
+
+		authHeader = "Bearer " + jwtIssuer.issue(admin);
 	}
 
 	@Test
@@ -52,6 +60,7 @@ public class TagResourceTest {
 		String title = "flood-" + System.nanoTime();
 
 		int id = given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + adminId + ",\"tagTitle\":\"" + title + "\",\"tagDescription\":\"flood-related incidents\"}")
 				.when().post("/tags")
@@ -66,6 +75,7 @@ public class TagResourceTest {
 
 		String updatedTitle = title + "-updated";
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + adminId + ",\"tagTitle\":\"" + updatedTitle + "\",\"tagDescription\":\"still flood\"}")
 				.when().put("/tags/" + id)
@@ -78,6 +88,7 @@ public class TagResourceTest {
 				.body("size()", greaterThan(0));
 
 		given()
+				.header("Authorization", authHeader)
 				.when().delete("/tags/" + id + "?actingUserId=" + adminId)
 				.then().statusCode(204);
 
@@ -89,6 +100,7 @@ public class TagResourceTest {
 	@Test
 	void createTagByNonAdminReturns400() {
 		given()
+				.header("Authorization", authHeader)
 				.contentType("application/json")
 				.body("{\"actingUserId\":" + reporterId + ",\"tagTitle\":\"blocked-" + System.nanoTime() + "\",\"tagDescription\":\"nope\"}")
 				.when().post("/tags")
