@@ -63,7 +63,8 @@ directly.
 ## Entities
 
 - **User** — firstName, lastName, email (unique), password (bcrypt-hashed via
-  `BcryptUtil`), `UserType` role: `REPORTER` or `ADMIN`
+  `BcryptUtil`), `UserType` role: `REPORTER` or `ADMIN`; a JWT is issued on login
+  (`JwtIssuer`)
 - **Incident** — title, description, severity (`LOW`/`MEDIUM`/`HIGH`), closed flag;
   `@ManyToOne` to its reporting User and to one Tag
 - **Tag** — tagTitle, tagDescription (one tag per incident, admin-managed)
