@@ -1,4 +1,4 @@
-# SWAM — Scalable Event-Driven Incident Management System
+# SWAM — Scalable Event-Driven Incident Management System (Pragmatic hexagonal)
 
 REST API (Quarkus) + Angular UI for reporting and tracking incidents, with an async Kafka-based duplicate-detection service.
 
